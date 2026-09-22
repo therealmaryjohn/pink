@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store Manager | Pink World (Admin Tool)</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+<div style="background:#2e2226; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+  <div style="color:white; font-weight:700; font-size:16px;">Pink World — Store Manager</div>
+  <a href="index.html" style="color:#e9dce0; font-size:13px;">← Back to Website</a>
+</div>
+
+<div class="admin-wrap">
+
+  <div class="admin-note">
+    <b>How this tool works:</b> By default, the Products and Categories tabs read your current <code>products.js</code> right in your browser — nothing is sent anywhere until you click Download and upload the file yourself. If you've turned on <b>instant product sync</b>, both tabs instead read/write live to Firestore once you log in as the admin — changes (including stock levels) appear on your site within seconds. The Orders and Messages tabs always require logging in with the store's admin mobile number. This page is not linked from your main menu — keep its address private.
+  </div>
+
+  <div class="admin-tabs">
+    <button class="admin-tab-btn active" data-tab="products" onclick="switchTab('products')">Products</button>
+    <button class="admin-tab-btn" data-tab="categories" onclick="switchTab('categories')">Categories</button>
+    <button class="admin-tab-btn" data-tab="settings" onclick="switchTab('settings')">Store Settings</button>
+    <button class="admin-tab-btn" data-tab="orders" onclick="switchTab('orders')">Orders</button>
+    <button class="admin-tab-btn" data-tab="messages" onclick="switchTab('messages')">Messages</button>
+  </div>
+
+  <!-- ============== PRODUCTS TAB ============== -->
+  <div class="admin-panel active" id="tab-products">
+
+    <div class="admin-card" id="productsGateCard" style="display:none;"></div>
+
+    <div id="productsManagerUI">
+
+      <div class="admin-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <span class="sync-badge offline" id="syncStatusBadge"><span class="sync-dot"></span> File-based mode</span>
+          <span style="font-size:12.5px; color:var(--text-muted);" id="syncStatusHint">Changes are saved by downloading &amp; re-uploading products.js.</span>
+        </div>
+        <div class="migrate-banner" id="migrateBanner" style="display:none; margin-top:16px;">
+          <b>One-time step:</b> your live product database is empty. Click below to copy your current starter catalog (products + categories + stock levels) into it — after that, all edits happen live.
+          <div style="margin-top:10px;">
+            <button class="btn btn-primary btn-sm" onclick="migrateCatalogToFirestore()" id="migrateBtn">Migrate Current Catalog to Firestore</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <h3 style="color:var(--pink-dark);">Current Products (<span id="productCount">0</span>)</h3>
+          <button class="btn btn-primary btn-sm" onclick="openProductForm(null)">+ Add New Product</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="product-admin-table">
+            <thead><tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Badge</th><th>Actions</th></tr></thead>
+            <tbody id="productTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-card" id="productFormCard" style="display:none;">
+        <h3 style="color:var(--pink-dark); margin-bottom:16px;" id="productFormTitle">Add New Product</h3>
+        <input type="hidden" id="pf-id">
+        <div class="form-row">
+          <div class="form-group"><label>Product Name</label><input type="text" id="pf-name" placeholder="e.g. Red Georgette Saree"></div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="pf-category"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Selling Price (₹)</label><input type="number" id="pf-price" placeholder="1999"></div>
+          <div class="form-group"><label>Original Price / MRP (₹) — optional</label><input type="number" id="pf-mrp" placeholder="Leave blank if no discount"></div>
+        </div>
+        <div class="form-group">
+          <label>Badge</label>
+          <select id="pf-badge">
+            <option value="">None</option>
+            <option value="New">New</option>
+            <option value="Sale">Sale</option>
+            <option value="Bestseller">Bestseller</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Sizes & Stock</label>
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Add a row for each size you sell, with how many are currently in stock. Set stock to 0 to mark a size as sold out — the product shows "Sold Out" automatically once every size reaches 0.</p>
+          <div id="pf-sizes-rows"></div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addSizeRow()">+ Add Size</button>
+        </div>
+
+        <div class="form-group"><label>Description</label><textarea id="pf-description" rows="2" placeholder="Short 1-2 line description"></textarea></div>
+
+        <div class="form-group">
+          <label>Product Photo</label>
+          <div class="image-drop-zone" onclick="document.getElementById('pf-image-input').click()">
+            Click to choose a photo (it will be automatically resized & compressed for the web)
+          </div>
+          <input type="file" id="pf-image-input" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+          <div id="pf-image-preview-wrap"></div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:8px;" id="pf-image-path-note"></p>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-primary" onclick="saveProduct()" id="saveProductBtn">Save Product</button>
+          <button class="btn btn-outline" onclick="closeProductForm()">Cancel</button>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3 style="color:var(--pink-dark); margin-bottom:10px;" id="publishHeading">Step 2: Publish Your Changes</h3>
+        <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;" id="publishHint">
+          Once you're happy with your product list above, download the updated file and any new photos, then upload them to your website.
+        </p>
+        <button class="btn btn-primary" onclick="downloadProductsJs()">Download Updated products.js</button>
+        <div id="pendingImageDownloads" style="margin-top:16px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============== CATEGORIES TAB ============== -->
+  <div class="admin-panel" id="tab-categories">
+
+    <div class="admin-card" id="categoriesGateCard" style="display:none;"></div>
+
+    <div id="categoriesManagerUI">
+      <div class="admin-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <h3 style="color:var(--pink-dark);">Current Categories (<span id="categoryCount">0</span>)</h3>
+          <button class="btn btn-primary btn-sm" onclick="openCategoryForm(null)">+ Add New Category</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="product-admin-table">
+            <thead><tr><th>Photo</th><th>Name</th><th>Category ID</th><th>Description</th><th>Actions</th></tr></thead>
+            <tbody id="categoryTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-card" id="categoryFormCard" style="display:none;">
+        <h3 style="color:var(--pink-dark); margin-bottom:16px;" id="categoryFormTitle">Add New Category</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Category Name</label><input type="text" id="cf-cat-name" placeholder="e.g. Footwear"></div>
+          <div class="form-group"><label>Category ID (auto-generated)</label><input type="text" id="cf-cat-id" placeholder="footwear"></div>
+        </div>
+        <div class="form-group"><label>Short Description</label><input type="text" id="cf-cat-description" placeholder="e.g. Shoes, sandals & more"></div>
+        <div class="form-group">
+          <label>Category Photo</label>
+          <div class="image-drop-zone" onclick="document.getElementById('cf-cat-image-input').click()">
+            Click to choose a photo (it will be automatically resized & compressed for the web)
+          </div>
+          <input type="file" id="cf-cat-image-input" accept="image/*" style="display:none;" onchange="handleCategoryImageSelect(event)">
+          <div id="cf-cat-image-preview-wrap"></div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:8px;" id="cf-cat-image-path-note"></p>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-primary" onclick="saveCategory()" id="saveCategoryBtn">Save Category</button>
+          <button class="btn btn-outline" onclick="closeCategoryForm()">Cancel</button>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h3 style="color:var(--pink-dark); margin-bottom:10px;">Publish Your Changes</h3>
+        <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;">Categories are saved in the same products.js file as your products — download it (also available from the Products tab) and upload it, along with any new category photos below.</p>
+        <button class="btn btn-primary" onclick="downloadProductsJs()">Download Updated products.js</button>
+        <div id="pendingCategoryImageDownloads" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== SETTINGS TAB ============== -->
+  <div class="admin-panel" id="tab-settings">
+    <div class="admin-card">
+      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Store Information</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Store Name</label><input type="text" id="cf-name"></div>
+        <div class="form-group"><label>WhatsApp Number (with country code, no + or spaces)</label><input type="text" id="cf-whatsapp" placeholder="919876543210"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Contact Email</label><input type="text" id="cf-email"></div>
+        <div class="form-group"><label>Free Shipping Threshold (₹)</label><input type="number" id="cf-shipping"></div>
+      </div>
+      <div class="form-group"><label>Short Description (shown in footer)</label><textarea id="cf-description" rows="2"></textarea></div>
+    </div>
+
+    <div class="admin-card">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Online Payments (Razorpay)</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Get your Key ID from your Razorpay Dashboard → Settings → API Keys. Never paste your Key Secret anywhere on this site.</p>
+      <div class="pill-toggle" style="margin-bottom:16px;">
+        <label class="switch"><input type="checkbox" id="cf-razorpay-enabled"><span class="slider-toggle"></span></label>
+        <span style="font-size:14px;">Enable online payments on the Cart page</span>
+      </div>
+      <div class="form-group"><label>Razorpay Key ID</label><input type="text" id="cf-razorpay-key" placeholder="rzp_live_xxxxxxxxxxxx"></div>
+    </div>
+
+    <div class="admin-card">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Customer Accounts, Orders, Messages & Product Sync (Firebase)</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">This is the mobile number YOU (the shop owner) use to log in — it unlocks the Orders and Messages tabs, and (if enabled) live editing on the Products/Categories tabs.</p>
+      <div class="form-group"><label>Admin Mobile Number (your own number, with country code)</label><input type="text" id="cf-admin-phone" placeholder="+919876543210"></div>
+    </div>
+
+    <div class="admin-card" id="branchesContainer">
+      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Branch Locations</h3>
+      <div id="branchFormsWrap"></div>
+    </div>
+
+    <div class="admin-card">
+      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Social Media Links</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Instagram URL</label><input type="text" id="cf-instagram" placeholder="https://instagram.com/yourpage"></div>
+        <div class="form-group"><label>Facebook URL</label><input type="text" id="cf-facebook" placeholder="https://facebook.com/yourpage"></div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Publish Your Changes</h3>
+      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;">Download the updated file and upload it to your website's <code>js/</code> folder, overwriting the old <code>config.js</code>.</p>
+      <button class="btn btn-primary" onclick="downloadConfigJs()">Download Updated config.js</button>
+    </div>
+  </div>
+
+  <!-- ============== ORDERS TAB ============== -->
+  <div class="admin-panel" id="tab-orders">
+
+    <div class="admin-card" id="ordersLoginPrompt">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to View Orders</h3>
+      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;" id="ordersLoginText">
+        Customer orders are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.
+      </p>
+      <a href="account.html" class="btn btn-primary">Go to Login Page</a>
+    </div>
+
+    <div class="admin-card" id="ordersNotAdminNotice" style="display:none;">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+      <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings. Update it there, re-download config.js, and upload it — or log in with the matching number.</p>
+    </div>
+
+    <div id="ordersTableWrap" style="display:none;">
+      <div class="admin-card">
+        <h3 style="color:var(--pink-dark); margin-bottom:16px;">All Customer Orders (<span id="orderCount">0</span>)</h3>
+        <div id="adminOrdersList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============== MESSAGES TAB ============== -->
+  <div class="admin-panel" id="tab-messages">
+
+    <div class="admin-card" id="messagesLoginPrompt">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to View Messages</h3>
+      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;" id="messagesLoginText">
+        Contact form submissions are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.
+      </p>
+      <a href="account.html" class="btn btn-primary">Go to Login Page</a>
+    </div>
+
+    <div class="admin-card" id="messagesNotAdminNotice" style="display:none;">
+      <h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+      <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings.</p>
+    </div>
+
+    <div id="messagesTableWrap" style="display:none;">
+      <div class="admin-card">
+        <h3 style="color:var(--pink-dark); margin-bottom:16px;">Contact Us Messages (<span id="messageCount">0</span>)</h3>
+        <div id="adminMessagesList"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products-sync.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Cart | Pink World</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+<div class="page-banner"><h1>My Cart</h1></div>
+
+<div class="container">
+  <div id="cartWrapper" style="display:grid; grid-template-columns: 1fr 340px; gap:30px; align-items:start;">
+    <div id="cartTableWrap"></div>
+    <div class="cart-summary" id="cartSummary"></div>
+  </div>
+</div>
+
+<div class="container" id="checkoutSection" style="display:none; margin-top:30px; max-width:600px;">
+  <div class="cart-summary">
+    <h3 style="color:var(--pink-dark); margin-bottom:16px;">Your Details</h3>
+    <p id="loggedInNotice" style="display:none; font-size:12.5px; color:var(--success); margin-bottom:14px;">✓ Logged in — this order will be saved to your account automatically.</p>
+    <div class="form-group"><label>Full Name</label><input type="text" id="custName" placeholder="Your name"></div>
+    <div class="form-group"><label>Phone Number</label><input type="text" id="custPhone" placeholder="10-digit mobile number"></div>
+    <div class="form-group"><label>Delivery Address (optional if picking up in-store)</label><textarea id="custAddress" rows="3" placeholder="House name, Place, Pin code"></textarea></div>
+    <div class="form-group">
+      <label>Preferred Branch for Pickup / Nearest Branch</label>
+      <select id="custBranch">
+        <option>Erattayar Branch</option>
+        <option>Nedumkandam Branch</option>
+        <option>Home Delivery</option>
+      </select>
+    </div>
+    <button class="btn btn-razorpay btn-block" style="margin-bottom:10px;" onclick="handlePayOnline()">Pay Online Now (UPI / Card / Netbanking)</button>
+    <button class="btn btn-whatsapp btn-block" onclick="submitCheckout()">Send Order via WhatsApp</button>
+    <p style="font-size:12px; color:var(--text-muted); margin-top:10px; text-align:center;">You can pay online for instant confirmation, or send your order via WhatsApp and pay on delivery/pickup.</p>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/notify-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products-sync.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/email-notify.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+  initLayout("shop");
+
+  if (typeof onAuthChange === "function") {
+    onAuthChange(user => {
+      document.getElementById("loggedInNotice").style.display = user ? "block" : "none";
+      if (user) {
+        document.getElementById("custPhone").value = user.phoneNumber || "";
+      }
+    });
+  }
+
+  function renderCartPage() {
+    const cart = getCart();
+    if (cart.length === 0) {
+      document.getElementById("cartWrapper").style.display = "block";
+      document.getElementById("cartTableWrap").innerHTML = `
+        <div class="empty-cart">
+          <div class="icon">🛍️</div>
+          <h3>Your cart is empty</h3>
+          <p style="color:var(--text-muted); margin:10px 0 20px;">Looks like you haven't added anything yet.</p>
+          <a href="shop.html" class="btn btn-primary">Start Shopping</a>
+        </div>`;
+      document.getElementById("cartSummary").innerHTML = "";
+      document.getElementById("checkoutSection").style.display = "none";
+      return;
+    }
+
+    let rows = "";
+    cart.forEach((item, index) => {
+      const product = PRODUCTS.find(p => p.id === item.id);
+      if (!product) return;
+      const stock = getSizeStock(product, item.size);
+      rows += `
+        <tr>
+          <td>
+            <div class="cart-item-info">
+              <img src="${product.image}" alt="${product.name}">
+              <div><strong>${product.name}</strong><br><span style="font-size:12px; color:var(--text-muted);">Size: ${item.size}${stock <= 3 ? ` · <span style="color:#b4650f;">only ${stock} left</span>` : ""}</span></div>
+            </div>
+          </td>
+          <td>${formatPrice(product.price)}</td>
+          <td>
+            <div class="qty-control">
+              <button onclick="changeCartQty(${index}, ${item.qty - 1})">−</button>
+              <span>${item.qty}</span>
+              <button onclick="changeCartQty(${index}, ${item.qty + 1})">+</button>
+            </div>
+          </td>
+          <td><strong>${formatPrice(product.price * item.qty)}</strong></td>
+          <td><button class="btn btn-outline btn-sm" onclick="removeCartItem(${index})">Remove</button></td>
+        </tr>`;
+    });
+
+    document.getElementById("cartTableWrap").innerHTML = `
+      <table class="cart-table">
+        <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Total</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    const total = cartTotalPrice();
+    const shipping = cartShippingCost();
+    document.getElementById("cartSummary").innerHTML = `
+      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Order Summary</h3>
+      <div class="row"><span>Subtotal</span><span>${formatPrice(total)}</span></div>
+      <div class="row"><span>Shipping</span><span>${shipping === 0 ? "FREE" : formatPrice(shipping)}</span></div>
+      <div class="row total-row"><span>Total</span><span>${formatPrice(total + shipping)}</span></div>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="showCheckout()">Proceed to Checkout</button>
+    `;
+    document.getElementById("checkoutSection").style.display = "none";
+  }
+
+  function changeCartQty(index, qty) { updateCartQty(index, qty); renderCartPage(); }
+  function removeCartItem(index) { removeFromCart(index); renderCartPage(); }
+  function showCheckout() {
+    document.getElementById("checkoutSection").style.display = "block";
+    document.getElementById("checkoutSection").scrollIntoView({ behavior: "smooth" });
+  }
+  function getCustomerFields() {
+    return {
+      name: document.getElementById("custName").value.trim(),
+      phone: document.getElementById("custPhone").value.trim(),
+      address: document.getElementById("custAddress").value.trim(),
+      branch: document.getElementById("custBranch").value
+    };
+  }
+  function submitCheckout() {
+    const c = getCustomerFields();
+    if (!c.name || !c.phone) { alert("Please enter your name and phone number."); return; }
+    checkoutViaWhatsApp(c.name, c.phone, c.address, c.branch);
+  }
+  function handlePayOnline() {
+    const c = getCustomerFields();
+    if (!c.name || !c.phone) { alert("Please enter your name and phone number before paying."); return; }
+    payOnlineWithRazorpay(c.name, c.phone, c.address, c.branch);
+  }
+
+  renderCartPage();
+  subscribeProductsUpdates(renderCartPage);
+</script>
+
+<style>
+  @media (max-width: 900px) { #cartWrapper { grid-template-columns: 1fr !important; } }
+</style>
+</body>
+</html>

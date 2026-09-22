@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account | Pink World</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+<div class="page-banner"><h1>My Account</h1></div>
+
+<div class="container">
+  <div class="account-wrap">
+
+    <div id="notConfiguredNotice" style="display:none;">
+      <div class="setup-notice">
+        <strong>Customer accounts aren't set up yet.</strong><br><br>
+        Once enabled, customers will be able to log in here with just their mobile number (no password needed), save products to a wishlist that follows them across devices, and see their past orders with live shipment tracking.<br><br>
+        To turn this on, open <code>js/firebase-config.js</code>, add your Firebase project details, and set <code>ACCOUNTS_ENABLED</code> to <code>true</code>.
+      </div>
+    </div>
+
+    <div id="loginSection" style="display:none;">
+      <div class="login-card">
+        <h2>Login to Your Account</h2>
+        <p class="sub">Enter your mobile number to receive a one-time code by SMS.</p>
+
+        <div id="phoneStep">
+          <div class="form-group" style="text-align:left;">
+            <label>Mobile Number</label>
+            <input type="tel" id="phoneInput" placeholder="+91 98765 43210">
+          </div>
+          <button class="btn btn-primary btn-block" id="sendOtpBtn">Send OTP</button>
+        </div>
+
+        <div id="otpStep" style="display:none; margin-top:10px;">
+          <div class="form-group" style="text-align:left;">
+            <label>Enter the 6-digit code sent to your phone</label>
+            <input type="text" id="otpInput" class="otp-input" maxlength="6" placeholder="000000">
+          </div>
+          <button class="btn btn-primary btn-block" id="verifyOtpBtn">Verify & Login</button>
+          <button class="btn btn-outline btn-block" style="margin-top:10px;" id="changeNumberBtn">Use a different number</button>
+        </div>
+
+        <p id="loginError" style="color:#c0392b; font-size:13px; margin-top:14px;"></p>
+      </div>
+    </div>
+
+    <div id="accountSection" style="display:none;">
+      <div class="account-tabs">
+        <button class="account-tab-btn active" data-tab="profile" onclick="switchAccountTab('profile')">Profile</button>
+        <button class="account-tab-btn" data-tab="wishlist" onclick="switchAccountTab('wishlist')">My Wishlist</button>
+        <button class="account-tab-btn" data-tab="orders" onclick="switchAccountTab('orders')">My Orders</button>
+      </div>
+
+      <div class="account-panel active" id="panel-profile">
+        <div class="admin-card">
+          <h3 style="color:var(--pink-dark); margin-bottom:16px;">Your Details</h3>
+          <div class="form-group"><label>Mobile Number</label><input type="text" id="profilePhone" disabled></div>
+          <div class="form-group"><label>Your Name</label><input type="text" id="profileName" placeholder="Add your name"></div>
+          <button class="btn btn-primary" onclick="saveProfileName()">Save</button>
+          <button class="btn btn-outline" style="margin-left:10px;" onclick="doLogout()">Log Out</button>
+        </div>
+      </div>
+
+      <div class="account-panel" id="panel-wishlist">
+        <p id="wishlistEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:30px;">Your wishlist is empty. Browse the shop and tap the heart icon on any product to save it here.</p>
+        <div class="wishlist-grid" id="wishlistGrid"></div>
+      </div>
+
+      <div class="account-panel" id="panel-orders">
+        <p id="ordersEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:30px;">You haven't placed any orders yet.</p>
+        <div id="ordersList"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products-sync.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+  initLayout("account");
+  subscribeProductsUpdates(function () {
+    if (document.getElementById("accountSection").style.display !== "none") loadWishlistTab();
+  });
+  subscribeCategoriesUpdates(function () {
+    if (document.getElementById("accountSection").style.display !== "none") loadWishlistTab();
+  });
+
+  if (!firebaseReady()) {
+    document.getElementById("notConfiguredNotice").style.display = "block";
+  } else {
+    onAuthChange(user => {
+      if (user) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("accountSection").style.display = "block";
+        loadProfileTab(user);
+        loadWishlistTab();
+        loadOrdersTab();
+      } else {
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("accountSection").style.display = "none";
+      }
+    });
+
+    document.getElementById("sendOtpBtn").addEventListener("click", () => {
+      const phone = document.getElementById("phoneInput").value.trim();
+      const errorEl = document.getElementById("loginError");
+      errorEl.textContent = "";
+      if (!phone || phone.replace(/\D/g, "").length < 10) {
+        errorEl.textContent = "Please enter a valid mobile number including country code (e.g. +919876543210).";
+        return;
+      }
+      setupRecaptcha("sendOtpBtn");
+      document.getElementById("sendOtpBtn").textContent = "Sending...";
+      sendOtp(phone).then(() => {
+        document.getElementById("phoneStep").style.display = "none";
+        document.getElementById("otpStep").style.display = "block";
+      }).catch(err => {
+        console.error(err);
+        errorEl.textContent = "Couldn't send the code. Please check the number and try again.";
+        document.getElementById("sendOtpBtn").textContent = "Send OTP";
+      });
+    });
+
+    document.getElementById("verifyOtpBtn").addEventListener("click", () => {
+      const code = document.getElementById("otpInput").value.trim();
+      const errorEl = document.getElementById("loginError");
+      errorEl.textContent = "";
+      if (!code || code.length < 6) { errorEl.textContent = "Please enter the 6-digit code."; return; }
+      verifyOtp(code).catch(err => {
+        console.error(err);
+        errorEl.textContent = "That code didn't match. Please try again.";
+      });
+    });
+
+    document.getElementById("changeNumberBtn").addEventListener("click", () => {
+      document.getElementById("phoneStep").style.display = "block";
+      document.getElementById("otpStep").style.display = "none";
+      document.getElementById("loginError").textContent = "";
+    });
+  }
+
+  function switchAccountTab(tab) {
+    document.querySelectorAll(".account-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    document.querySelectorAll(".account-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("panel-" + tab).classList.add("active");
+  }
+
+  async function loadProfileTab(user) {
+    document.getElementById("profilePhone").value = user.phoneNumber || "";
+    const profile = await getUserProfile();
+    document.getElementById("profileName").value = (profile && profile.name) || "";
+  }
+
+  async function saveProfileName() {
+    const name = document.getElementById("profileName").value.trim();
+    await updateUserName(name);
+    alert("Saved!");
+  }
+
+  function doLogout() {
+    logout();
+  }
+
+  async function loadWishlistTab() {
+    try {
+      const ids = await getWishlistIds();
+      const grid = document.getElementById("wishlistGrid");
+      const products = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+      document.getElementById("wishlistEmpty").style.display = products.length ? "none" : "block";
+      grid.innerHTML = products.map(productCardHtml).join("");
+      refreshWishlistIcons();
+    } catch (e) {
+      console.error("Could not load wishlist:", e);
+      document.getElementById("wishlistEmpty").style.display = "block";
+      document.getElementById("wishlistEmpty").textContent = "Couldn't load your wishlist right now. Please refresh and try again.";
+    }
+  }
+
+  async function loadOrdersTab() {
+    let orders = [];
+    try {
+      orders = await getMyOrders();
+    } catch (e) {
+      console.error("Could not load orders:", e);
+      document.getElementById("ordersEmpty").style.display = "block";
+      document.getElementById("ordersEmpty").innerHTML = "Couldn't load your orders right now.<br><span style='font-size:12px;'>If you just enabled accounts, Firestore may need a moment to set up.</span>";
+      document.getElementById("ordersList").innerHTML = "";
+      return;
+    }
+    const list = document.getElementById("ordersList");
+    document.getElementById("ordersEmpty").style.display = orders.length ? "none" : "block";
+    list.innerHTML = orders.map(o => {
+      const dateStr = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
+      const itemsHtml = (o.items || []).map(it =>
+        `<div class="order-item-row"><span>${it.name} (${it.size}) x${it.qty}</span><span>${formatPrice(it.price * it.qty)}</span></div>`
+      ).join("");
+      return `
+        <div class="order-card">
+          <div class="order-card-head">
+            <div>
+              <strong>Order placed ${dateStr}</strong><br>
+              <span style="font-size:12.5px; color:var(--text-muted);">${o.paymentMethod || ""}</span>
+            </div>
+            <span class="order-status">${o.status || "Placed"}</span>
+          </div>
+          ${renderStatusStepper(o.status || "Placed")}
+          ${renderTrackingBox(o)}
+          ${itemsHtml}
+          <div class="row" style="margin-top:10px; font-weight:700; color:var(--pink-dark);">
+            <span>Total</span><span>${formatPrice(o.total || 0)}</span>
+          </div>
+        </div>`;
+    }).join("");
+  }
+</script>
+</body>
+</html>

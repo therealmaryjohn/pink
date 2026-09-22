@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTabTitle">Product | Pink World</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<div class="container" style="padding-top:30px;">
+  <div id="productContent" class="product-detail"></div>
+  <section class="section">
+    <div class="section-head"><div><h2>You May Also Like</h2></div></div>
+    <div class="product-grid" id="relatedGrid"></div>
+  </section>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/notify-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products-sync.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/email-notify.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+  initLayout("shop");
+  const id = getParam("id");
+  let selectedSize = null;
+  let qty = 1;
+
+  function renderProductDetail() {
+    const product = PRODUCTS.find(p => p.id === id);
+
+    if (!product) {
+      document.getElementById("productContent").innerHTML = "<p>Product not found. <a href='shop.html'>Back to shop</a></p>";
+      document.getElementById("relatedGrid").innerHTML = "";
+      return;
+    }
+    const sizeNames = getSizeNames(product);
+    if (!selectedSize || !sizeNames.includes(selectedSize)) selectedSize = getFirstAvailableSize(product);
+    const soldOut = isProductSoldOut(product);
+    const selectedStock = selectedSize ? getSizeStock(product, selectedSize) : 0;
+    if (qty > selectedStock) qty = Math.max(1, selectedStock);
+
+    document.getElementById("pageTabTitle").textContent = product.name + " | Pink World";
+    const discount = product.mrp ? Math.round(100 - (product.price / product.mrp) * 100) : null;
+    const categoryObj = CATEGORIES.find(c => c.id === product.category);
+
+    const sizeButtonsHtml = sizeNames.map(sizeName => {
+      const stock = getSizeStock(product, sizeName);
+      const isSelected = sizeName === selectedSize;
+      const isSoldOut = stock <= 0;
+      return `<button class="${isSelected ? "selected" : ""} ${isSoldOut ? "soldout" : ""}" ${isSoldOut ? "disabled" : ""} onclick="selectSize('${sizeName}', this)">${sizeName}${isSoldOut ? " (Sold Out)" : ""}</button>`;
+    }).join("");
+
+    let stockNoteHtml = "";
+    if (!soldOut && selectedStock > 0 && selectedStock <= 3) {
+      stockNoteHtml = `<p class="stock-note low">Only ${selectedStock} left in this size — order soon!</p>`;
+    } else if (!soldOut && selectedStock > 3) {
+      stockNoteHtml = `<p class="stock-note">${selectedStock} in stock</p>`;
+    }
+
+    document.getElementById("productContent").innerHTML = `
+      <div class="product-detail-img">
+        <button type="button" class="wishlist-heart wishlist-heart-lg" data-wishlist-id="${product.id}" onclick="handleWishlistClick('${product.id}', this)" title="Add to wishlist">♡</button>
+        <img src="${product.image}" alt="${product.name}" ${soldOut ? 'style="opacity:0.6;"' : ""}>
+      </div>
+      <div class="product-detail-info">
+        ${soldOut ? `<span class="badge soldout" style="position:static; display:inline-block; margin-bottom:10px;">Sold Out</span>` : (product.badge ? `<span class="badge ${product.badge.toLowerCase()}" style="position:static; display:inline-block; margin-bottom:10px;">${product.badge}</span>` : "")}
+        <h1>${product.name}</h1>
+        <p style="color:var(--text-muted); font-size:14px;">Category: ${categoryObj ? categoryObj.name : product.category}</p>
+        <div class="price-row">
+          <span class="price">${formatPrice(product.price)}</span>
+          ${product.mrp ? `<span class="mrp">${formatPrice(product.mrp)}</span><span class="discount">${discount}% OFF</span>` : ""}
+        </div>
+        <p>${product.description}</p>
+
+        ${soldOut ? `<div class="sold-out-banner">This product is currently sold out in all sizes.</div>` : `
+        <h4 style="margin-top:20px; font-size:14px;">Select Size</h4>
+        <div class="size-options" id="sizeOptions">${sizeButtonsHtml}</div>
+        ${stockNoteHtml}
+        <h4 style="font-size:14px;">Quantity</h4>
+        <div class="qty-selector">
+          <button class="btn btn-outline btn-sm" onclick="changeQty(-1)">−</button>
+          <span id="qtyDisplay">${qty}</span>
+          <button class="btn btn-outline btn-sm" onclick="changeQty(1)">+</button>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-primary" onclick="addThisToCart()">Add to Cart</button>
+          <button class="btn btn-whatsapp" onclick="orderNowWhatsApp()">Order Now on WhatsApp</button>
+        </div>
+        `}
+        <p style="font-size:13px; color:var(--text-muted);">📍 Available at both Erattayar and Nedumkandam stores. Visit <a href="about.html" style="color:var(--pink-dark); font-weight:600;">Store Locations</a> for details.</p>
+      </div>`;
+    document.getElementById("relatedGrid").innerHTML = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4).map(productCardHtml).join("");
+    refreshWishlistIcons();
+  }
+
+  function changeQty(delta) {
+    const product = PRODUCTS.find(p => p.id === id);
+    const stock = product ? getSizeStock(product, selectedSize) : 999;
+    qty = Math.max(1, Math.min(stock, qty + delta));
+    document.getElementById("qtyDisplay").textContent = qty;
+  }
+  function selectSize(size, btn) {
+    selectedSize = size;
+    qty = 1;
+    renderProductDetail();
+  }
+  function addThisToCart() {
+    const added = addToCart(id, selectedSize, qty);
+    if (added) alert(`Added to cart! (Size: ${selectedSize}) x${qty}`);
+  }
+  function orderNowWhatsApp() {
+    const added = addToCart(id, selectedSize, qty);
+    if (added) checkoutViaWhatsApp();
+  }
+
+  renderProductDetail();
+  subscribeProductsUpdates(renderProductDetail);
+  subscribeCategoriesUpdates(renderProductDetail);
+</script>
+</body>
+</html>

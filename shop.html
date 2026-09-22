@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop All Products | Pink World</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<meta name="description" content="Browse sarees, kurtis, western wear, men's collections, and intimate & innerwear at Pink World.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+<div class="page-banner"><h1 id="pageTitle">Shop All Products</h1></div>
+
+<div class="container">
+  <div class="shop-layout">
+    <aside class="filter-box">
+      <h4>Category</h4>
+      <div id="categoryFilters"></div>
+      <h4 style="margin-top:24px;">Sort By</h4>
+      <select id="sortSelect" class="form-group">
+        <option value="default">Featured</option>
+        <option value="low-high">Price: Low to High</option>
+        <option value="high-low">Price: High to Low</option>
+      </select>
+      <h4 style="margin-top:24px;">Only Show</h4>
+      <label class="filter-option"><input type="checkbox" id="filterSale"> On Sale</label>
+      <label class="filter-option"><input type="checkbox" id="filterNew"> New Arrivals</label>
+      <label class="filter-option"><input type="checkbox" id="filterInStock"> In Stock Only</label>
+      <button class="btn btn-outline btn-block" style="margin-top:16px;" onclick="clearFilters()">Clear Filters</button>
+    </aside>
+    <main>
+      <p id="resultCount" style="margin-bottom:16px; color:var(--text-muted); font-size:14px;"></p>
+      <div class="product-grid" id="productGrid"></div>
+    </main>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/products-sync.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+<script>
+  initLayout("shop");
+  let currentCategory = getParam("category") || "all";
+  let currentSearch = (getParam("search") || "").toLowerCase();
+
+  function renderCategoryFilters() {
+    let html = `<label class="filter-option"><input type="radio" name="cat" value="all" ${currentCategory === "all" ? "checked" : ""} onchange="setCategory('all')"> All Products</label>`;
+    CATEGORIES.forEach(c => {
+      html += `<label class="filter-option"><input type="radio" name="cat" value="${c.id}" ${currentCategory === c.id ? "checked" : ""} onchange="setCategory('${c.id}')"> ${c.name}</label>`;
+    });
+    document.getElementById("categoryFilters").innerHTML = html;
+  }
+  function setCategory(cat) { currentCategory = cat; renderProducts(); }
+  function clearFilters() {
+    currentCategory = "all"; currentSearch = "";
+    document.getElementById("filterSale").checked = false;
+    document.getElementById("filterNew").checked = false;
+    document.getElementById("filterInStock").checked = false;
+    document.getElementById("sortSelect").value = "default";
+    renderCategoryFilters(); renderProducts();
+  }
+  function renderProducts() {
+    renderCategoryFilters();
+    let list = PRODUCTS.slice();
+    if (currentCategory !== "all") list = list.filter(p => p.category === currentCategory);
+    if (currentSearch) list = list.filter(p => p.name.toLowerCase().includes(currentSearch) || p.category.includes(currentSearch));
+    if (document.getElementById("filterSale").checked) list = list.filter(p => p.mrp);
+    if (document.getElementById("filterNew").checked) list = list.filter(p => p.badge === "New");
+    if (document.getElementById("filterInStock").checked) list = list.filter(p => !isProductSoldOut(p));
+    const sort = document.getElementById("sortSelect").value;
+    if (sort === "low-high") list.sort((a, b) => a.price - b.price);
+    if (sort === "high-low") list.sort((a, b) => b.price - a.price);
+    document.getElementById("resultCount").textContent = `${list.length} product${list.length !== 1 ? "s" : ""} found`;
+    const catName = currentCategory === "all" ? "Shop All Products" : (CATEGORIES.find(c => c.id === currentCategory) || {}).name || "Shop";
+    document.getElementById("pageTitle").textContent = currentSearch ? `Search results for "${currentSearch}"` : catName;
+    document.getElementById("productGrid").innerHTML = list.length ? list.map(productCardHtml).join("") : `<p style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">No products found. Try a different filter.</p>`;
+    refreshWishlistIcons();
+  }
+  document.getElementById("sortSelect").addEventListener("change", renderProducts);
+  document.getElementById("filterSale").addEventListener("change", renderProducts);
+  document.getElementById("filterNew").addEventListener("change", renderProducts);
+  document.getElementById("filterInStock").addEventListener("change", renderProducts);
+  renderCategoryFilters();
+  renderProducts();
+  subscribeProductsUpdates(renderProducts);
+  subscribeCategoriesUpdates(renderProducts);
+</script>
+</body>
+</html>
