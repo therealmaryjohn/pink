@@ -17,6 +17,9 @@ const STORE_CONFIG = {
   razorpayEnabled: true,
   razorpayKeyId: "rzp_test_TeezvvjQSJNKGD",
 
+  // This exact number (with +country code, no spaces) is the ONLY
+  // login that can make changes on admin.html — both the Firestore
+  // security rules AND the admin page itself check against this.
   adminPhone: "+910000000000",
 
   branches: [

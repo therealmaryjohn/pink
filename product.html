@@ -27,6 +27,7 @@
 <div id="footer-placeholder"></div>
 
 <script src="js/config.js"></script>
+<script src="js/ui-notify.js"></script>
 <script src="js/products.js"></script>
 <script src="js/inventory.js"></script>
 <script src="js/firebase-config.js"></script>
@@ -123,12 +124,12 @@
     qty = 1;
     renderProductDetail();
   }
-  function addThisToCart() {
-    const added = addToCart(id, selectedSize, qty);
-    if (added) alert(`Added to cart! (Size: ${selectedSize}) x${qty}`);
+  async function addThisToCart() {
+    const added = await addToCart(id, selectedSize, qty);
+    if (added) await showNotice(`Added to cart! (Size: ${selectedSize}) x${qty}`);
   }
-  function orderNowWhatsApp() {
-    const added = addToCart(id, selectedSize, qty);
+  async function orderNowWhatsApp() {
+    const added = await addToCart(id, selectedSize, qty);
     if (added) checkoutViaWhatsApp();
   }
 

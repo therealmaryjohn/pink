@@ -1,5 +1,12 @@
 /* =====================================================================
    PINK WORLD — STORE MANAGER (admin.html logic)
+   -----------------------------------------------------------------
+   SECURITY: The entire page (every tab) is hidden behind
+   updateAdminAccessGate() below, which only reveals anything once
+   the visitor has logged in with the exact admin mobile number set
+   in Store Settings. This is enforced again server-side by your
+   Firestore/Storage security rules, so even a technically savvy
+   visitor cannot push changes without that specific phone's OTP.
    ===================================================================== */
 
 const SEED_PRODUCTS = JSON.parse(JSON.stringify(PRODUCTS));
@@ -25,6 +32,46 @@ function isAdminUser() {
   return !!adminPhone && userPhone === adminPhone;
 }
 
+/* ---------------------------- PAGE ACCESS GATE ---------------------------- */
+function updateAdminAccessGate() {
+  const gate = document.getElementById("adminAccessGate");
+  const content = document.getElementById("adminGatedContent");
+
+  if (!firebaseReady()) {
+    // No login mechanism exists at all -- fall back to showing the page,
+    // since there is no way to authenticate anyone without Firebase.
+    gate.style.display = "none";
+    content.style.display = "block";
+    return;
+  }
+
+  if (!_currentAuthUser) {
+    gate.style.display = "block";
+    content.style.display = "none";
+    gate.innerHTML = `
+      <div class="admin-card admin-gate-card">
+        <h2>Store Manager Login Required</h2>
+        <p>This page is restricted to the store owner. Please log in with the admin mobile number to continue.</p>
+        <a href="account.html" class="btn btn-primary">Go to Login Page</a>
+      </div>`;
+    return;
+  }
+
+  if (!isAdminUser()) {
+    gate.style.display = "block";
+    content.style.display = "none";
+    gate.innerHTML = `
+      <div class="admin-card admin-gate-card">
+        <h2>Access Denied</h2>
+        <p>You're logged in, but this mobile number isn't set as the store's Admin Mobile Number in Store Settings.</p>
+      </div>`;
+    return;
+  }
+
+  gate.style.display = "none";
+  content.style.display = "block";
+}
+
 /* ---------------------------- TABS ---------------------------- */
 function switchTab(tab) {
   activeAdminTab = tab;
@@ -32,8 +79,8 @@ function switchTab(tab) {
   ["products", "categories", "settings", "orders", "messages"].forEach(t => {
     document.getElementById("tab-" + t).classList.toggle("active", t === tab);
   });
-  if (tab === "orders") refreshOrdersUI();
-  if (tab === "messages") refreshInquiriesUI();
+  if (tab === "orders") loadAllOrders();
+  if (tab === "messages") loadAllInquiries();
 }
 
 /* ---------------------------- HELPERS ---------------------------- */
@@ -99,57 +146,26 @@ function updateSizeRow(i, field, value) {
 }
 function removeSizeRow(i) { currentSizeRows.splice(i, 1); renderSizeRows(); }
 
-/* ---------------------------- PRODUCTS TAB GATING ---------------------------- */
+/* ---------------------------- PRODUCTS TAB ---------------------------- */
 function updateProductsTabUI() {
-  const gateCard = document.getElementById("productsGateCard");
-  const managerUI = document.getElementById("productsManagerUI");
   const badge = document.getElementById("syncStatusBadge");
   const hint = document.getElementById("syncStatusHint");
   const migrateBanner = document.getElementById("migrateBanner");
-  const publishHeading = document.getElementById("publishHeading");
-  const publishHint = document.getElementById("publishHint");
 
   if (!SYNC_ACTIVE) {
-    gateCard.style.display = "none";
-    managerUI.style.display = "block";
     badge.className = "sync-badge offline";
     badge.innerHTML = '<span class="sync-dot"></span> File-based mode';
     hint.textContent = "Changes are saved by downloading & re-uploading products.js.";
     migrateBanner.style.display = "none";
-    publishHeading.textContent = "Step 2: Publish Your Changes";
-    publishHint.textContent = "Once you're happy with your product list above, download the updated file and any new photos, then upload them to your website.";
-    renderProductTable();
-    return;
+  } else {
+    badge.className = "sync-badge live";
+    badge.innerHTML = '<span class="sync-dot"></span> Live sync — changes save instantly';
+    hint.textContent = "Add, edit, or delete products below — your website updates within seconds.";
+    migrateBanner.style.display = (firestoreCatalogHasData() && categoriesFirestoreHasData()) ? "none" : "block";
   }
-
-  if (!_currentAuthUser) {
-    gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to Manage Products</h3>
-      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;">Instant product sync is turned on. Log in with the store's admin mobile number to add, edit, or remove products.</p>
-      <a href="account.html" class="btn btn-primary">Go to Login Page</a>`;
-    managerUI.style.display = "none";
-    return;
-  }
-  if (!isAdminUser()) {
-    gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
-      <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings. Update it there, re-download config.js, and upload it — or log in with the matching number.</p>`;
-    managerUI.style.display = "none";
-    return;
-  }
-
-  gateCard.style.display = "none";
-  managerUI.style.display = "block";
-  badge.className = "sync-badge live";
-  badge.innerHTML = '<span class="sync-dot"></span> Live sync — changes save instantly';
-  hint.textContent = "Add, edit, or delete products below — your website updates within seconds.";
-  publishHeading.textContent = "Optional: Export a Backup Copy";
-  publishHint.textContent = "Your catalog is already live — this download is just a local backup, not required for publishing.";
-  migrateBanner.style.display = (firestoreCatalogHasData() && categoriesFirestoreHasData()) ? "none" : "block";
   renderProductTable();
 }
 
-/* ---------------------------- PRODUCTS TABLE ---------------------------- */
 function renderProductTable() {
   const list = getWorkingList();
   document.getElementById("productCount").textContent = list.length;
@@ -170,20 +186,20 @@ function renderProductTable() {
     </tr>
   `).join("");
   document.getElementById("productTableBody").innerHTML = rows || `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No products yet — click "Add New Product" above.</td></tr>`;
-  renderPendingImageDownloads();
   refreshCategoryDropdownOptions();
 }
 
 async function deleteProduct(id) {
-  if (!confirm("Remove this product? " + (SYNC_ACTIVE ? "This takes effect on your live site immediately." : "(This only affects the downloaded file, not your live site until you re-upload.)"))) return;
+  const ok = await showConfirm("Remove this product? " + (SYNC_ACTIVE ? "This takes effect on your live site immediately." : "(This only affects the downloaded file, not your live site until you re-upload.)"));
+  if (!ok) return;
 
   if (SYNC_ACTIVE) {
-    if (!isAdminUser()) { alert("Please log in as the admin number first."); return; }
+    if (!isAdminUser()) { await showNotice("Please log in as the admin number first."); return; }
     try {
       await fbDb.collection("products").doc(id).delete();
       delete pendingImages[id];
     } catch (e) {
-      alert("Couldn't delete this product online right now: " + e.message);
+      await showNotice("Couldn't delete this product online right now: " + e.message);
     }
     return;
   }
@@ -263,8 +279,8 @@ async function saveProduct() {
     .filter(r => r.size && r.size.trim())
     .map(r => ({ size: r.size.trim(), stock: Math.max(0, Number(r.stock) || 0) }));
 
-  if (!name || !price || !category) { alert("Please fill in at least the product name, category, and price."); return; }
-  if (sizes.length === 0) { alert("Please add at least one size (e.g. \"Free Size\") with its stock quantity."); return; }
+  if (!name || !price || !category) { await showNotice("Please fill in at least the product name, category, and price."); return; }
+  if (sizes.length === 0) { await showNotice("Please add at least one size (e.g. \"Free Size\") with its stock quantity."); return; }
 
   let id = document.getElementById("pf-id").value;
   const isNew = !id;
@@ -273,7 +289,7 @@ async function saveProduct() {
   const pending = pendingImages[id];
 
   if (SYNC_ACTIVE) {
-    if (!isAdminUser()) { alert("Please log in as the admin number first."); return; }
+    if (!isAdminUser()) { await showNotice("Please log in as the admin number first."); return; }
     const saveBtn = document.getElementById("saveProductBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
@@ -296,8 +312,9 @@ async function saveProduct() {
       await fbDb.collection("products").doc(id).set(productData, { merge: true });
       delete pendingImages[id];
       closeProductForm();
+      await showNotice("Product saved — your website updates within a few seconds.");
     } catch (e) {
-      alert("Couldn't save this product online right now. Please check your connection and try again.\n\n" + e.message);
+      await showNotice("Couldn't save this product online right now. Please check your connection and try again.\n\n" + e.message);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -314,46 +331,8 @@ async function saveProduct() {
   renderProductTable();
 }
 
-function renderPendingImageDownloads() {
-  const wrap = document.getElementById("pendingImageDownloads");
-  if (SYNC_ACTIVE) { wrap.innerHTML = ""; return; }
-  const keys = Object.keys(pendingImages).filter(k => k !== "__new__");
-  if (keys.length === 0) { wrap.innerHTML = ""; return; }
-  wrap.innerHTML = `<p style="font-size:13px; margin-bottom:8px;"><b>New/updated photos to upload into your images/ folder:</b></p>` +
-    keys.map(id => {
-      const item = pendingImages[id];
-      return `<span class="file-download-chip">${item.filename} <a href="${item.url}" download="${item.filename}">Download</a></span>`;
-    }).join("");
-}
-
 /* ---------------------------- CATEGORIES TAB ---------------------------- */
 function updateCategoriesTabUI() {
-  const gateCard = document.getElementById("categoriesGateCard");
-  const managerUI = document.getElementById("categoriesManagerUI");
-
-  if (!SYNC_ACTIVE) {
-    gateCard.style.display = "none";
-    managerUI.style.display = "block";
-    renderCategoryTable();
-    return;
-  }
-  if (!_currentAuthUser) {
-    gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to Manage Categories</h3>
-      <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;">Instant sync is turned on. Log in with the store's admin mobile number to add, edit, or remove categories.</p>
-      <a href="account.html" class="btn btn-primary">Go to Login Page</a>`;
-    managerUI.style.display = "none";
-    return;
-  }
-  if (!isAdminUser()) {
-    gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
-      <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings.</p>`;
-    managerUI.style.display = "none";
-    return;
-  }
-  gateCard.style.display = "none";
-  managerUI.style.display = "block";
   renderCategoryTable();
 }
 
@@ -374,7 +353,6 @@ function renderCategoryTable() {
       </td>
     </tr>
   `).join("") || `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No categories yet.</td></tr>`;
-  renderPendingCategoryImageDownloads();
   refreshCategoryDropdownOptions();
 }
 
@@ -425,7 +403,7 @@ async function saveCategory() {
   const name = document.getElementById("cf-cat-name").value.trim();
   let id = document.getElementById("cf-cat-id").value.trim();
   const description = document.getElementById("cf-cat-description").value.trim();
-  if (!name) { alert("Please enter a category name."); return; }
+  if (!name) { await showNotice("Please enter a category name."); return; }
   if (!id) id = slugify(name);
 
   const isNew = !editingCategoryId;
@@ -440,7 +418,7 @@ async function saveCategory() {
   const pending = pendingCategoryImages[id];
 
   if (SYNC_ACTIVE) {
-    if (!isAdminUser()) { alert("Please log in as the admin number first."); return; }
+    if (!isAdminUser()) { await showNotice("Please log in as the admin number first."); return; }
     const saveBtn = document.getElementById("saveCategoryBtn");
     const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
@@ -462,8 +440,9 @@ async function saveCategory() {
       }, { merge: true });
       delete pendingCategoryImages[id];
       closeCategoryForm();
+      await showNotice("Category saved — your website updates within a few seconds.");
     } catch (e) {
-      alert("Couldn't save this category online right now.\n\n" + e.message);
+      await showNotice("Couldn't save this category online right now.\n\n" + e.message);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -485,30 +464,18 @@ async function deleteCategory(id) {
   const msg = inUseCount > 0
     ? `${inUseCount} product(s) currently use this category. They'll keep that category tag, but it will no longer appear as a filter option unless you reassign them. Delete anyway?`
     : "Delete this category?";
-  if (!confirm(msg)) return;
+  const ok = await showConfirm(msg);
+  if (!ok) return;
 
   if (SYNC_ACTIVE) {
-    if (!isAdminUser()) { alert("Please log in as the admin number first."); return; }
+    if (!isAdminUser()) { await showNotice("Please log in as the admin number first."); return; }
     try { await fbDb.collection("categories").doc(id).delete(); delete pendingCategoryImages[id]; }
-    catch (e) { alert("Couldn't delete: " + e.message); }
+    catch (e) { await showNotice("Couldn't delete: " + e.message); }
     return;
   }
   workingCategories = workingCategories.filter(c => c.id !== id);
   delete pendingCategoryImages[id];
   renderCategoryTable();
-}
-
-function renderPendingCategoryImageDownloads() {
-  const wrap = document.getElementById("pendingCategoryImageDownloads");
-  if (!wrap) return;
-  if (SYNC_ACTIVE) { wrap.innerHTML = ""; return; }
-  const keys = Object.keys(pendingCategoryImages).filter(k => k !== "__new__");
-  if (keys.length === 0) { wrap.innerHTML = ""; return; }
-  wrap.innerHTML = `<p style="font-size:13px; margin-bottom:8px;"><b>New/updated category photos to upload into your images/ folder:</b></p>` +
-    keys.map(id => {
-      const item = pendingCategoryImages[id];
-      return `<span class="file-download-chip">${item.filename} <a href="${item.url}" download="${item.filename}">Download</a></span>`;
-    }).join("");
 }
 
 function refreshCategoryDropdownOptions() {
@@ -534,7 +501,8 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ---------------------------- MIGRATION (one-time) ---------------------------- */
 async function migrateCatalogToFirestore() {
   if (!SYNC_ACTIVE || !isAdminUser()) return;
-  if (!confirm(`Copy your current ${SEED_PRODUCTS.length} starter products (with their stock levels) and ${SEED_CATEGORIES.length} categories into the live database? This is normally only done once.`)) return;
+  const ok = await showConfirm(`Copy your current ${SEED_PRODUCTS.length} starter products (with their stock levels) and ${SEED_CATEGORIES.length} categories into the live database? This is normally only done once.`);
+  if (!ok) return;
   const btn = document.getElementById("migrateBtn");
   const originalText = btn.textContent;
   btn.textContent = "Migrating..."; btn.disabled = true;
@@ -549,44 +517,11 @@ async function migrateCatalogToFirestore() {
       batch.set(ref, Object.assign({}, c, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
     });
     await batch.commit();
-    alert("Catalog migrated! Your products, categories, and stock levels are now live — edits will appear on your site within seconds.");
+    await showNotice("Catalog migrated! Your products, categories, and stock levels are now live — edits will appear on your site within seconds.");
   } catch (e) {
-    alert("Migration failed: " + e.message + "\n\nDouble-check your Firestore security rules include the products and categories collections.");
+    await showNotice("Migration failed: " + e.message + "\n\nDouble-check your Firestore security rules include the products and categories collections.");
   } finally {
     btn.textContent = originalText; btn.disabled = false;
-  }
-}
-
-/* ---------------------------- products.js FILE GENERATION ---------------------------- */
-function serializeProduct(p) {
-  const mrpStr = (p.mrp === null || p.mrp === undefined || p.mrp === "") ? "null" : p.mrp;
-  const sizesStr = "[" + (p.sizes || []).map(s => {
-    const sizeName = (typeof s === "object" && s !== null) ? s.size : s;
-    const stock = (typeof s === "object" && s !== null) ? (Number(s.stock) || 0) : 10;
-    return `{ size: ${JSON.stringify(sizeName)}, stock: ${stock} }`;
-  }).join(", ") + "]";
-  return `  { id: ${JSON.stringify(p.id)}, name: ${JSON.stringify(p.name)}, category: ${JSON.stringify(p.category)}, price: ${p.price}, mrp: ${mrpStr}, image: ${JSON.stringify(p.image)}, badge: ${JSON.stringify(p.badge || "")}, sizes: ${sizesStr}, description: ${JSON.stringify(p.description || "")} }`;
-}
-function serializeCategory(c) {
-  return `  { id: ${JSON.stringify(c.id)}, name: ${JSON.stringify(c.name)}, image: ${JSON.stringify(c.image)}, description: ${JSON.stringify(c.description || "")} }`;
-}
-function downloadProductsJs() {
-  const list = getWorkingList();
-  const catList = getWorkingCategoryList();
-  const header = `/* PINK WORLD — PRODUCT CATALOG ${SYNC_ACTIVE ? "(backup export from live Firestore catalog)" : "(generated/updated using admin.html)"} */\n\nconst PRODUCTS = [\n`;
-  const body = list.map(serializeProduct).join(",\n");
-  const catBody = catList.map(serializeCategory).join(",\n");
-  const content = header + body + `\n];\n\nconst CATEGORIES = [\n` + catBody + `\n];\n`;
-  downloadTextFile("products.js", content);
-
-  if (SYNC_ACTIVE) {
-    alert("Backup exported! Your live catalog is already published on your site — this file is just a backup copy.");
-    return;
-  }
-  const remaining = Object.keys(pendingImages).filter(k => k !== "__new__");
-  const remainingCat = Object.keys(pendingCategoryImages).filter(k => k !== "__new__");
-  if (remaining.length > 0 || remainingCat.length > 0) {
-    alert(`products.js downloaded!\n\nDon't forget to also download your new photo(s) below (${remaining.length} product photo(s), ${remainingCat.length} category photo(s)) and upload them into your images/ folder.`);
   }
 }
 
@@ -687,38 +622,8 @@ ${branchesStr}
 /* ---------------------------- ORDERS TAB ---------------------------- */
 const ORDER_STATUSES = ["Placed", "Confirmed", "Shipped", "Delivered", "Cancelled"];
 
-function refreshOrdersUI() {
-  const loginPrompt = document.getElementById("ordersLoginPrompt");
-  const notAdminNotice = document.getElementById("ordersNotAdminNotice");
-  const tableWrap = document.getElementById("ordersTableWrap");
-
-  if (!firebaseReady()) {
-    loginPrompt.style.display = "block";
-    document.getElementById("ordersLoginText").textContent = "Customer accounts aren't set up yet. Enable Firebase in js/firebase-config.js — then orders will appear here.";
-    notAdminNotice.style.display = "none";
-    tableWrap.style.display = "none";
-    return;
-  }
-  if (!_currentAuthUser) {
-    loginPrompt.style.display = "block";
-    document.getElementById("ordersLoginText").textContent = "Customer orders are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.";
-    notAdminNotice.style.display = "none";
-    tableWrap.style.display = "none";
-    return;
-  }
-  if (!isAdminUser()) {
-    loginPrompt.style.display = "none";
-    notAdminNotice.style.display = "block";
-    tableWrap.style.display = "none";
-    return;
-  }
-  loginPrompt.style.display = "none";
-  notAdminNotice.style.display = "none";
-  tableWrap.style.display = "block";
-  if (activeAdminTab === "orders") loadAllOrders();
-}
-
 async function loadAllOrders() {
+  if (!isAdminUser()) return;
   let orders = [];
   try {
     const snap = await fbDb.collection("orders").orderBy("createdAt", "desc").limit(200).get();
@@ -770,47 +675,17 @@ async function saveTracking(orderId) {
       carrier: carrier || null,
       trackingUrl: url || null
     }, { merge: true });
-    alert("Tracking info saved. The customer will see this under My Orders.");
+    await showNotice("Tracking info saved. The customer will see this under My Orders.");
   } catch (e) {
-    alert("Couldn't save tracking info: " + e.message);
+    await showNotice("Couldn't save tracking info: " + e.message);
   }
 }
 
 /* ---------------------------- MESSAGES TAB (Contact Us inquiries) ---------------------------- */
 const INQUIRY_STATUSES = ["New", "Read", "Replied"];
 
-function refreshInquiriesUI() {
-  const loginPrompt = document.getElementById("messagesLoginPrompt");
-  const notAdminNotice = document.getElementById("messagesNotAdminNotice");
-  const tableWrap = document.getElementById("messagesTableWrap");
-
-  if (!firebaseReady()) {
-    loginPrompt.style.display = "block";
-    document.getElementById("messagesLoginText").textContent = "Customer accounts aren't set up yet. Enable Firebase in js/firebase-config.js — then contact messages will appear here.";
-    notAdminNotice.style.display = "none";
-    tableWrap.style.display = "none";
-    return;
-  }
-  if (!_currentAuthUser) {
-    loginPrompt.style.display = "block";
-    document.getElementById("messagesLoginText").textContent = "Contact form submissions are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.";
-    notAdminNotice.style.display = "none";
-    tableWrap.style.display = "none";
-    return;
-  }
-  if (!isAdminUser()) {
-    loginPrompt.style.display = "none";
-    notAdminNotice.style.display = "block";
-    tableWrap.style.display = "none";
-    return;
-  }
-  loginPrompt.style.display = "none";
-  notAdminNotice.style.display = "none";
-  tableWrap.style.display = "block";
-  if (activeAdminTab === "messages") loadAllInquiries();
-}
-
 async function loadAllInquiries() {
+  if (!isAdminUser()) return;
   let items = [];
   try {
     const snap = await fbDb.collection("inquiries").orderBy("createdAt", "desc").limit(200).get();
@@ -846,16 +721,18 @@ async function updateInquiryStatus(id, status) {
 
 /* ---------------------------- INIT ---------------------------- */
 loadSettingsForm();
+updateAdminAccessGate();
 updateProductsTabUI();
 updateCategoriesTabUI();
 
 if (typeof onAuthChange === "function") {
   onAuthChange(user => {
     _currentAuthUser = user;
+    updateAdminAccessGate();
     updateProductsTabUI();
     updateCategoriesTabUI();
-    refreshOrdersUI();
-    refreshInquiriesUI();
+    if (isAdminUser() && activeAdminTab === "orders") loadAllOrders();
+    if (isAdminUser() && activeAdminTab === "messages") loadAllInquiries();
   });
 }
 

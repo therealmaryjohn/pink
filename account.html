@@ -87,6 +87,7 @@
 <div id="footer-placeholder"></div>
 
 <script src="js/config.js"></script>
+<script src="js/ui-notify.js"></script>
 <script src="js/products.js"></script>
 <script src="js/inventory.js"></script>
 <script src="js/firebase-config.js"></script>
@@ -105,9 +106,6 @@
     if (document.getElementById("accountSection").style.display !== "none") loadWishlistTab();
   });
 
-  // If the user just logged in and hasn't set a name yet, we land here
-  // normally. If they already HAVE a name saved, jump straight to the
-  // homepage with their "Hi, Name" greeting already showing up top.
   let _justLoggedIn = false;
 
   if (!firebaseReady()) {
@@ -176,9 +174,6 @@
     const profile = await getUserProfile();
     document.getElementById("profileName").value = (profile && profile.name) || "";
 
-    // If the customer just verified their OTP and ALREADY has a name on
-    // file (returning customer), skip straight to the shop with their
-    // "Hi, Name" greeting visible in the header.
     if (_justLoggedIn && profile && profile.name && profile.name.trim()) {
       window.location.href = "shop.html";
     }
@@ -186,17 +181,15 @@
 
   async function saveProfileName() {
     const name = document.getElementById("profileName").value.trim();
-    if (!name) { alert("Please enter your name."); return; }
+    if (!name) { await showNotice("Please enter your name."); return; }
     const btn = document.getElementById("saveProfileBtn");
     btn.disabled = true;
     btn.textContent = "Saving...";
     try {
       await updateUserName(name);
-      // Head to the homepage — the header will now greet the customer
-      // by name ("Hi, <Name>") on every page.
       window.location.href = "index.html";
     } catch (e) {
-      alert("Couldn't save your name right now. Please try again.");
+      await showNotice("Couldn't save your name right now. Please try again.");
       btn.disabled = false;
       btn.textContent = "Save";
     }
