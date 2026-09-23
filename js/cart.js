@@ -185,7 +185,7 @@ function payOnlineWithRazorpay(customerName, customerPhone, customerAddress, bra
     description: "Order Payment",
     prefill: { name: customerName || "", contact: customerPhone || "" },
     notes: { address: customerAddress || "", branch: branch || "" },
-    theme: { color: "#c9436f" },
+    theme: { color: "#96543f" },
     handler: function (response) {
       clearCart();
       alert("Payment successful!\n\nPayment ID: " + response.razorpay_payment_id + "\n\nWe'll now open WhatsApp so you can send your order details for confirmation.");

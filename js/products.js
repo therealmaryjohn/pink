@@ -1,9 +1,5 @@
 /* =====================================================================
    PINK WORLD — PRODUCT CATALOG (default / offline catalog)
-   -----------------------------------------------------------------
-   Each product's "sizes" field is a list of { size, stock } objects —
-   this powers automatic "Sold Out" labels and per-size availability
-   across the site. Manage all of this using admin.html.
    ===================================================================== */
 
 const PRODUCTS = [

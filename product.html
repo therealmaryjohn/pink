@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="pageTabTitle">Product | Pink World</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -16,10 +16,10 @@
 
 <div id="header-placeholder"></div>
 
-<div class="container" style="padding-top:30px;">
+<div class="container" style="padding-top:50px;">
   <div id="productContent" class="product-detail"></div>
   <section class="section">
-    <div class="section-head"><div><h2>You May Also Like</h2></div></div>
+    <div class="section-head-row"><h2>You May Also Like</h2></div>
     <div class="product-grid" id="relatedGrid"></div>
   </section>
 </div>
@@ -82,20 +82,20 @@
         <img src="${product.image}" alt="${product.name}" ${soldOut ? 'style="opacity:0.6;"' : ""}>
       </div>
       <div class="product-detail-info">
-        ${soldOut ? `<span class="badge soldout" style="position:static; display:inline-block; margin-bottom:10px;">Sold Out</span>` : (product.badge ? `<span class="badge ${product.badge.toLowerCase()}" style="position:static; display:inline-block; margin-bottom:10px;">${product.badge}</span>` : "")}
+        ${soldOut ? `<span class="badge soldout" style="position:static; display:inline-block; margin-bottom:14px;">Sold Out</span>` : (product.badge ? `<span class="badge ${product.badge.toLowerCase()}" style="position:static; display:inline-block; margin-bottom:14px;">${product.badge}</span>` : "")}
         <h1>${product.name}</h1>
-        <p style="color:var(--text-muted); font-size:14px;">Category: ${categoryObj ? categoryObj.name : product.category}</p>
+        <p style="color:var(--text-muted); font-size:13px; letter-spacing:0.5px; text-transform:uppercase;">${categoryObj ? categoryObj.name : product.category}</p>
         <div class="price-row">
           <span class="price">${formatPrice(product.price)}</span>
           ${product.mrp ? `<span class="mrp">${formatPrice(product.mrp)}</span><span class="discount">${discount}% OFF</span>` : ""}
         </div>
-        <p>${product.description}</p>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.8;">${product.description}</p>
 
         ${soldOut ? `<div class="sold-out-banner">This product is currently sold out in all sizes.</div>` : `
-        <h4 style="margin-top:20px; font-size:14px;">Select Size</h4>
+        <h4 style="margin-top:24px; font-size:12px; text-transform:uppercase; letter-spacing:1.2px;">Select Size</h4>
         <div class="size-options" id="sizeOptions">${sizeButtonsHtml}</div>
         ${stockNoteHtml}
-        <h4 style="font-size:14px;">Quantity</h4>
+        <h4 style="font-size:12px; text-transform:uppercase; letter-spacing:1.2px;">Quantity</h4>
         <div class="qty-selector">
           <button class="btn btn-outline btn-sm" onclick="changeQty(-1)">−</button>
           <span id="qtyDisplay">${qty}</span>
@@ -106,7 +106,7 @@
           <button class="btn btn-whatsapp" onclick="orderNowWhatsApp()">Order Now on WhatsApp</button>
         </div>
         `}
-        <p style="font-size:13px; color:var(--text-muted);">📍 Available at both Erattayar and Nedumkandam stores. Visit <a href="about.html" style="color:var(--pink-dark); font-weight:600;">Store Locations</a> for details.</p>
+        <p style="font-size:12.5px; color:var(--text-muted);">Available at both Erattayar and Nedumkandam stores. Visit <a href="about.html" style="color:var(--rose-dark); font-weight:600;">Store Locations</a> for details.</p>
       </div>`;
     document.getElementById("relatedGrid").innerHTML = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4).map(productCardHtml).join("");
     refreshWishlistIcons();

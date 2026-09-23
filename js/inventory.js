@@ -1,16 +1,5 @@
 /* =====================================================================
    PINK WORLD — SIZE-LEVEL INVENTORY / STOCK TRACKING
-   -----------------------------------------------------------------
-   Every product's "sizes" field is a list of { size, stock } objects,
-   e.g.: sizes: [ { size: "S", stock: 5 }, { size: "M", stock: 0 } ]
-
-   This file provides helper functions used across the whole site
-   (product cards, product detail page, cart, and the Store Manager)
-   to read stock, detect sold-out sizes/products, and — when instant
-   product sync (Firestore) is enabled — automatically reduce stock
-   after a customer completes checkout.
-
-   Loaded on every page right after products.js.
    ===================================================================== */
 
 function getSizeNames(product) {

@@ -124,7 +124,7 @@ function updateProductsTabUI() {
 
   if (!_currentAuthUser) {
     gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to Manage Products</h3>
+    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to Manage Products</h3>
       <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;">Instant product sync is turned on. Log in with the store's admin mobile number to add, edit, or remove products.</p>
       <a href="account.html" class="btn btn-primary">Go to Login Page</a>`;
     managerUI.style.display = "none";
@@ -132,7 +132,7 @@ function updateProductsTabUI() {
   }
   if (!isAdminUser()) {
     gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
       <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings. Update it there, re-download config.js, and upload it — or log in with the matching number.</p>`;
     managerUI.style.display = "none";
     return;
@@ -339,7 +339,7 @@ function updateCategoriesTabUI() {
   }
   if (!_currentAuthUser) {
     gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to Manage Categories</h3>
+    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to Manage Categories</h3>
       <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;">Instant sync is turned on. Log in with the store's admin mobile number to add, edit, or remove categories.</p>
       <a href="account.html" class="btn btn-primary">Go to Login Page</a>`;
     managerUI.style.display = "none";
@@ -347,7 +347,7 @@ function updateCategoriesTabUI() {
   }
   if (!isAdminUser()) {
     gateCard.style.display = "block";
-    gateCard.innerHTML = `<h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+    gateCard.innerHTML = `<h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
       <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings.</p>`;
     managerUI.style.display = "none";
     return;
@@ -594,8 +594,8 @@ function downloadProductsJs() {
 function renderBranchForms() {
   const wrap = document.getElementById("branchFormsWrap");
   wrap.innerHTML = workingConfig.branches.map((b, i) => `
-    <div style="border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px;">
-      <h4 style="font-size:14px; color:var(--pink-dark); margin-bottom:10px;">Branch ${i + 1}</h4>
+    <div style="border:1px solid var(--border); padding:16px; margin-bottom:14px;">
+      <h4 style="font-size:14px; color:var(--rose-dark); margin-bottom:10px;">Branch ${i + 1}</h4>
       <div class="form-row">
         <div class="form-group"><label>Branch Name</label><input type="text" id="branch-name-${i}" value="${escapeHtml(b.name)}"></div>
         <div class="form-group"><label>Phone</label><input type="text" id="branch-phone-${i}" value="${escapeHtml(b.phone)}"></div>
@@ -741,13 +741,13 @@ async function loadAllOrders() {
             <strong>${escapeHtml(o.customerName || "Customer")}</strong> — ${escapeHtml(o.phone || "")}<br>
             <span style="font-size:12.5px; color:var(--text-muted);">${dateStr} · ${escapeHtml(o.paymentMethod || "")} · ${escapeHtml(o.branch || "")}</span>
           </div>
-          <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px;">
+          <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:6px 10px; border:1px solid var(--border); font-size:13px;">
             ${statusOptions}
           </select>
         </div>
         ${o.address ? `<p style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">Address: ${escapeHtml(o.address)}</p>` : ""}
         ${itemsHtml}
-        <div class="row" style="margin-top:10px; font-weight:700; color:var(--pink-dark);"><span>Total</span><span>₹${o.total || 0}</span></div>
+        <div class="row" style="margin-top:10px; font-weight:700; color:var(--rose-dark);"><span>Total</span><span>₹${o.total || 0}</span></div>
         <div class="tracking-edit-row">
           <input type="text" class="tracking-input" id="track-num-${o.id}" placeholder="Tracking Number" value="${escapeHtml(o.trackingNumber || "")}">
           <input type="text" class="tracking-input" id="track-carrier-${o.id}" placeholder="Carrier (e.g. BlueDart, DTDC, India Post)" value="${escapeHtml(o.carrier || "")}">
@@ -832,7 +832,7 @@ async function loadAllInquiries() {
             <strong>${escapeHtml(m.name || "Customer")}</strong> — ${escapeHtml(m.phone || "")}<br>
             <span style="font-size:12.5px; color:var(--text-muted);">${dateStr}</span>
           </div>
-          <select onchange="updateInquiryStatus('${m.id}', this.value)" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:13px;">
+          <select onchange="updateInquiryStatus('${m.id}', this.value)" style="padding:6px 10px; border:1px solid var(--border); font-size:13px;">
             ${statusOptions}
           </select>
         </div>

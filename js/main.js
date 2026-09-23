@@ -23,7 +23,7 @@ function renderHeader(activePage) {
   ).join("");
 
   return `
-  <div class="announce-bar">Free shipping on orders above ${formatPrice(STORE_CONFIG.freeShippingThreshold)} | Order via WhatsApp for instant confirmation</div>
+  <div class="announce-bar">Free shipping on orders above ${formatPrice(STORE_CONFIG.freeShippingThreshold)} — Order via WhatsApp for instant confirmation</div>
   <header class="site-header">
     <div class="header-inner">
       <a href="index.html" class="logo-link">
@@ -32,8 +32,9 @@ function renderHeader(activePage) {
       <nav class="main-nav" id="mainNav">${navHtml}</nav>
       <div class="header-actions">
         <div class="search-box">
-          <input type="text" id="headerSearch" placeholder="Search products...">
+          <input type="text" id="headerSearch" placeholder="Search...">
         </div>
+        <a href="account.html" class="account-greeting" id="accountGreeting"></a>
         <a href="account.html" class="icon-link" id="accountHeaderLink" title="My Account">👤</a>
         <a href="cart.html" class="icon-link" title="Cart">🛍️<span class="cart-badge">0</span></a>
         <a href="https://wa.me/${STORE_CONFIG.whatsapp}" target="_blank" class="icon-link" title="WhatsApp us">💬</a>
@@ -83,7 +84,7 @@ function renderFooter() {
       </div>
     </div>
     <div class="footer-bottom">
-      © <span id="year"></span> ${STORE_CONFIG.name}. All rights reserved. | Made with love in Idukki, Kerala
+      © <span id="year"></span> ${STORE_CONFIG.name}. All rights reserved. — Made with love in Idukki, Kerala
     </div>
   </footer>
   <a href="https://wa.me/${STORE_CONFIG.whatsapp}" target="_blank" class="float-whatsapp" title="Chat on WhatsApp">💬</a>`;
@@ -107,11 +108,29 @@ function initLayout(activePage) {
   });
 
   if (typeof onAuthChange === "function") {
-    onAuthChange(user => {
+    onAuthChange(async (user) => {
       const link = document.getElementById("accountHeaderLink");
-      if (!link) return;
-      link.title = user ? "My Account (logged in)" : "Login / My Account";
-      link.style.color = user ? "#c9436f" : "";
+      const greetingEl = document.getElementById("accountGreeting");
+      if (!user) {
+        if (link) { link.title = "Login / My Account"; link.style.color = ""; }
+        if (greetingEl) { greetingEl.style.display = "none"; greetingEl.textContent = ""; }
+        return;
+      }
+      if (link) { link.title = "My Account"; link.style.color = "var(--rose-dark)"; }
+      if (greetingEl && typeof getUserProfile === "function") {
+        try {
+          const profile = await getUserProfile();
+          const firstName = profile && profile.name ? profile.name.trim().split(" ")[0] : "";
+          if (firstName) {
+            greetingEl.innerHTML = `Hi, ${firstName}`;
+            greetingEl.style.display = "inline-flex";
+          } else {
+            greetingEl.style.display = "none";
+          }
+        } catch (e) {
+          greetingEl.style.display = "none";
+        }
+      }
     });
   }
 }

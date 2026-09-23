@@ -6,7 +6,7 @@
 <title>About Us & Store Locations | Pink World</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
 <meta name="description" content="Learn about Pink World and find our store locations in Erattayar and Nedumkandam, Idukki district, Kerala.">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -17,31 +17,31 @@
 <div id="header-placeholder"></div>
 <div class="page-banner"><h1>About Pink World</h1></div>
 
-<div class="container">
-  <section class="section" style="max-width:800px; margin:0 auto; text-align:center;">
-    <p style="font-size:16px; color:var(--text-muted);">
+<div class="container" style="padding-top:60px;">
+  <section class="section" style="padding-top:0; max-width:760px; margin:0 auto; text-align:center;">
+    <p style="font-size:15.5px; color:var(--text-muted); line-height:1.9;">
       Pink World is a fashion and lifestyle store bringing you the latest in sarees, kurtis,
-      western wear, men's collections, and intimate & innerwear — combining quality fabrics, trendy designs, and friendly
-      in-store service. With two stores serving the Idukki district — in <strong>Erattayar</strong> and
-      <strong>Nedumkandam</strong> — we're proud to now bring our collection online too, so you can browse
+      western wear, men's collections, and intimate & innerwear — combining quality fabrics, thoughtful design, and warm
+      in-store service. With two stores serving the Idukki district — in <strong style="color:var(--text-dark);">Erattayar</strong> and
+      <strong style="color:var(--text-dark);">Nedumkandam</strong> — we're proud to now bring our collection online too, so you can browse
       and order your favourites from anywhere.
     </p>
   </section>
 
   <section class="section">
     <div class="section-head">
-      <div><h2>Visit Our Stores</h2><p class="section-sub">Two convenient locations across Idukki district</p></div>
+      <span class="eyebrow">Visit Us</span>
+      <h2>Our Stores</h2>
+      <p>Two convenient locations across Idukki district</p>
     </div>
     <div class="branch-grid" id="branchGrid"></div>
   </section>
 
-  <section class="section">
-    <div class="features-strip">
-      <div class="feature-item"><div class="icon">🧵</div><h5>Quality Fabrics</h5><p>Carefully sourced materials</p></div>
-      <div class="feature-item"><div class="icon">💰</div><h5>Best Prices</h5><p>Great value, always</p></div>
-      <div class="feature-item"><div class="icon">🤝</div><h5>Trusted Locally</h5><p>Serving Idukki families</p></div>
-      <div class="feature-item"><div class="icon">📦</div><h5>Online + In-Store</h5><p>Shop your way</p></div>
-    </div>
+  <section class="features-strip">
+    <div class="feature-item"><div class="icon">🧵</div><h5>Quality Fabrics</h5><p>Carefully sourced materials</p></div>
+    <div class="feature-item"><div class="icon">💰</div><h5>Best Prices</h5><p>Great value, always</p></div>
+    <div class="feature-item"><div class="icon">🤝</div><h5>Trusted Locally</h5><p>Serving Idukki families</p></div>
+    <div class="feature-item"><div class="icon">📦</div><h5>Online + In-Store</h5><p>Shop your way</p></div>
   </section>
 </div>
 
@@ -66,7 +66,7 @@
         <p><strong>Address:</strong> ${b.address}</p>
         <p><strong>Phone:</strong> ${b.phone}</p>
         <p><strong>Hours:</strong> ${b.hours}</p>
-        <div style="display:flex; gap:10px; margin-top:14px;">
+        <div style="display:flex; gap:12px; margin-top:18px;">
           <a href="${b.mapLink}" target="_blank" class="btn btn-outline btn-sm">Get Directions</a>
           <a href="https://wa.me/${STORE_CONFIG.whatsapp}" target="_blank" class="btn btn-whatsapp btn-sm">WhatsApp</a>
         </div>

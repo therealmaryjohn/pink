@@ -7,27 +7,18 @@ const STORE_CONFIG = {
   tagline: "Fashion & Everyday Essentials for the Whole Family",
   description: "Trendy sarees, kurtis, western wear, men's collections & intimate wear — now online from our Erattayar and Nedumkandam stores.",
 
-  whatsapp: "917306775643", // <-- REPLACE with the shop's real WhatsApp number if different
+  whatsapp: "917306775643",
 
   email: "info@pinkworldstore.in",
 
   freeShippingThreshold: 1499,
   currency: "₹",
 
-  // ---------------- ONLINE PAYMENTS (Razorpay) ----------------
-  // Only the Key ID ever goes here — NEVER put your Key Secret in this
-  // file or anywhere in the website. The Key Secret stays private and
-  // is only used later if you build a server-side backend.
   razorpayEnabled: true,
-  razorpayKeyId: "rzp_test_TeezvvjQSJNKGD", // Test key — safe to use for now while testing
+  razorpayKeyId: "rzp_test_TeezvvjQSJNKGD",
 
-  // ---------------- CUSTOMER ACCOUNTS & ORDERS (Firebase) ----------------
-  // adminPhone: the shop owner's own mobile number (used to log in via account.html).
-  // This same number unlocks the Store Manager's Orders, Messages tabs, and (if
-  // enabled) live Products/Categories editing.
-  adminPhone: "+910000000000", // <-- REPLACE with the owner's mobile number
+  adminPhone: "+910000000000",
 
-  // Branch / store locations
   branches: [
     {
       name: "Erattayar Branch",

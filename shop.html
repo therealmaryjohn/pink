@@ -6,7 +6,7 @@
 <title>Shop All Products | Pink World</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
 <meta name="description" content="Browse sarees, kurtis, western wear, men's collections, and intimate & innerwear at Pink World.">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -17,25 +17,25 @@
 <div id="header-placeholder"></div>
 <div class="page-banner"><h1 id="pageTitle">Shop All Products</h1></div>
 
-<div class="container">
+<div class="container" style="padding-top:50px; padding-bottom:70px;">
   <div class="shop-layout">
     <aside class="filter-box">
       <h4>Category</h4>
       <div id="categoryFilters"></div>
-      <h4 style="margin-top:24px;">Sort By</h4>
+      <h4 style="margin-top:32px;">Sort By</h4>
       <select id="sortSelect" class="form-group">
         <option value="default">Featured</option>
         <option value="low-high">Price: Low to High</option>
         <option value="high-low">Price: High to Low</option>
       </select>
-      <h4 style="margin-top:24px;">Only Show</h4>
+      <h4 style="margin-top:32px;">Only Show</h4>
       <label class="filter-option"><input type="checkbox" id="filterSale"> On Sale</label>
       <label class="filter-option"><input type="checkbox" id="filterNew"> New Arrivals</label>
       <label class="filter-option"><input type="checkbox" id="filterInStock"> In Stock Only</label>
-      <button class="btn btn-outline btn-block" style="margin-top:16px;" onclick="clearFilters()">Clear Filters</button>
+      <button class="btn btn-outline btn-block" style="margin-top:20px;" onclick="clearFilters()">Clear Filters</button>
     </aside>
     <main>
-      <p id="resultCount" style="margin-bottom:16px; color:var(--text-muted); font-size:14px;"></p>
+      <p id="resultCount" style="margin-bottom:24px; color:var(--text-muted); font-size:13px; letter-spacing:0.4px;"></p>
       <div class="product-grid" id="productGrid"></div>
     </main>
   </div>
