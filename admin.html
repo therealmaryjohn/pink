@@ -6,7 +6,7 @@
 <title>Store Manager | Pink World (Admin Tool)</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
 <meta name="robots" content="noindex, nofollow">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -15,9 +15,9 @@
 </head>
 <body>
 
-<div style="background:#2e2226; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+<div style="background:#2b2420; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
   <div style="color:white; font-weight:700; font-size:16px;">Pink World — Store Manager</div>
-  <a href="index.html" style="color:#e9dce0; font-size:13px;">← Back to Website</a>
+  <a href="index.html" style="color:#d8cec6; font-size:13px;">← Back to Website</a>
 </div>
 
 <div class="admin-wrap">
@@ -56,7 +56,7 @@
 
       <div class="admin-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color:var(--pink-dark);">Current Products (<span id="productCount">0</span>)</h3>
+          <h3 style="color:var(--rose-dark);">Current Products (<span id="productCount">0</span>)</h3>
           <button class="btn btn-primary btn-sm" onclick="openProductForm(null)">+ Add New Product</button>
         </div>
         <div style="overflow-x:auto;">
@@ -68,7 +68,7 @@
       </div>
 
       <div class="admin-card" id="productFormCard" style="display:none;">
-        <h3 style="color:var(--pink-dark); margin-bottom:16px;" id="productFormTitle">Add New Product</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:16px;" id="productFormTitle">Add New Product</h3>
         <input type="hidden" id="pf-id">
         <div class="form-row">
           <div class="form-group"><label>Product Name</label><input type="text" id="pf-name" placeholder="e.g. Red Georgette Saree"></div>
@@ -117,7 +117,7 @@
       </div>
 
       <div class="admin-card">
-        <h3 style="color:var(--pink-dark); margin-bottom:10px;" id="publishHeading">Step 2: Publish Your Changes</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:10px;" id="publishHeading">Step 2: Publish Your Changes</h3>
         <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;" id="publishHint">
           Once you're happy with your product list above, download the updated file and any new photos, then upload them to your website.
         </p>
@@ -136,7 +136,7 @@
     <div id="categoriesManagerUI">
       <div class="admin-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-          <h3 style="color:var(--pink-dark);">Current Categories (<span id="categoryCount">0</span>)</h3>
+          <h3 style="color:var(--rose-dark);">Current Categories (<span id="categoryCount">0</span>)</h3>
           <button class="btn btn-primary btn-sm" onclick="openCategoryForm(null)">+ Add New Category</button>
         </div>
         <div style="overflow-x:auto;">
@@ -148,7 +148,7 @@
       </div>
 
       <div class="admin-card" id="categoryFormCard" style="display:none;">
-        <h3 style="color:var(--pink-dark); margin-bottom:16px;" id="categoryFormTitle">Add New Category</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:16px;" id="categoryFormTitle">Add New Category</h3>
         <div class="form-row">
           <div class="form-group"><label>Category Name</label><input type="text" id="cf-cat-name" placeholder="e.g. Footwear"></div>
           <div class="form-group"><label>Category ID (auto-generated)</label><input type="text" id="cf-cat-id" placeholder="footwear"></div>
@@ -170,7 +170,7 @@
       </div>
 
       <div class="admin-card">
-        <h3 style="color:var(--pink-dark); margin-bottom:10px;">Publish Your Changes</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:10px;">Publish Your Changes</h3>
         <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;">Categories are saved in the same products.js file as your products — download it (also available from the Products tab) and upload it, along with any new category photos below.</p>
         <button class="btn btn-primary" onclick="downloadProductsJs()">Download Updated products.js</button>
         <div id="pendingCategoryImageDownloads" style="margin-top:16px;"></div>
@@ -181,7 +181,7 @@
   <!-- ============== SETTINGS TAB ============== -->
   <div class="admin-panel" id="tab-settings">
     <div class="admin-card">
-      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Store Information</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:16px;">Store Information</h3>
       <div class="form-row">
         <div class="form-group"><label>Store Name</label><input type="text" id="cf-name"></div>
         <div class="form-group"><label>WhatsApp Number (with country code, no + or spaces)</label><input type="text" id="cf-whatsapp" placeholder="919876543210"></div>
@@ -194,7 +194,7 @@
     </div>
 
     <div class="admin-card">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Online Payments (Razorpay)</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">Online Payments (Razorpay)</h3>
       <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Get your Key ID from your Razorpay Dashboard → Settings → API Keys. Never paste your Key Secret anywhere on this site.</p>
       <div class="pill-toggle" style="margin-bottom:16px;">
         <label class="switch"><input type="checkbox" id="cf-razorpay-enabled"><span class="slider-toggle"></span></label>
@@ -204,18 +204,18 @@
     </div>
 
     <div class="admin-card">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Customer Accounts, Orders, Messages & Product Sync (Firebase)</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">Customer Accounts, Orders, Messages & Product Sync (Firebase)</h3>
       <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">This is the mobile number YOU (the shop owner) use to log in — it unlocks the Orders and Messages tabs, and (if enabled) live editing on the Products/Categories tabs.</p>
       <div class="form-group"><label>Admin Mobile Number (your own number, with country code)</label><input type="text" id="cf-admin-phone" placeholder="+919876543210"></div>
     </div>
 
     <div class="admin-card" id="branchesContainer">
-      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Branch Locations</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:16px;">Branch Locations</h3>
       <div id="branchFormsWrap"></div>
     </div>
 
     <div class="admin-card">
-      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Social Media Links</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:16px;">Social Media Links</h3>
       <div class="form-row">
         <div class="form-group"><label>Instagram URL</label><input type="text" id="cf-instagram" placeholder="https://instagram.com/yourpage"></div>
         <div class="form-group"><label>Facebook URL</label><input type="text" id="cf-facebook" placeholder="https://facebook.com/yourpage"></div>
@@ -223,7 +223,7 @@
     </div>
 
     <div class="admin-card">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Publish Your Changes</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">Publish Your Changes</h3>
       <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:14px;">Download the updated file and upload it to your website's <code>js/</code> folder, overwriting the old <code>config.js</code>.</p>
       <button class="btn btn-primary" onclick="downloadConfigJs()">Download Updated config.js</button>
     </div>
@@ -233,7 +233,7 @@
   <div class="admin-panel" id="tab-orders">
 
     <div class="admin-card" id="ordersLoginPrompt">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to View Orders</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to View Orders</h3>
       <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;" id="ordersLoginText">
         Customer orders are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.
       </p>
@@ -241,13 +241,13 @@
     </div>
 
     <div class="admin-card" id="ordersNotAdminNotice" style="display:none;">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
       <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings. Update it there, re-download config.js, and upload it — or log in with the matching number.</p>
     </div>
 
     <div id="ordersTableWrap" style="display:none;">
       <div class="admin-card">
-        <h3 style="color:var(--pink-dark); margin-bottom:16px;">All Customer Orders (<span id="orderCount">0</span>)</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:16px;">All Customer Orders (<span id="orderCount">0</span>)</h3>
         <div id="adminOrdersList"></div>
       </div>
     </div>
@@ -258,7 +258,7 @@
   <div class="admin-panel" id="tab-messages">
 
     <div class="admin-card" id="messagesLoginPrompt">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">Log In to View Messages</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">Log In to View Messages</h3>
       <p style="font-size:13.5px; color:var(--text-muted); margin-bottom:16px;" id="messagesLoginText">
         Contact form submissions are stored securely online. To view them here, log in using the store's admin mobile number set in Store Settings.
       </p>
@@ -266,13 +266,13 @@
     </div>
 
     <div class="admin-card" id="messagesNotAdminNotice" style="display:none;">
-      <h3 style="color:var(--pink-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
+      <h3 style="color:var(--rose-dark); margin-bottom:10px;">This Number Isn't Set as Admin</h3>
       <p style="font-size:13.5px; color:var(--text-muted);">You're logged in, but this mobile number doesn't match the Admin Mobile Number in Store Settings.</p>
     </div>
 
     <div id="messagesTableWrap" style="display:none;">
       <div class="admin-card">
-        <h3 style="color:var(--pink-dark); margin-bottom:16px;">Contact Us Messages (<span id="messageCount">0</span>)</h3>
+        <h3 style="color:var(--rose-dark); margin-bottom:16px;">Contact Us Messages (<span id="messageCount">0</span>)</h3>
         <div id="adminMessagesList"></div>
       </div>
     </div>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Account | Pink World</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -16,7 +16,7 @@
 <div id="header-placeholder"></div>
 <div class="page-banner"><h1>My Account</h1></div>
 
-<div class="container">
+<div class="container" style="padding-top:60px; padding-bottom:70px;">
   <div class="account-wrap">
 
     <div id="notConfiguredNotice" style="display:none;">
@@ -40,16 +40,16 @@
           <button class="btn btn-primary btn-block" id="sendOtpBtn">Send OTP</button>
         </div>
 
-        <div id="otpStep" style="display:none; margin-top:10px;">
+        <div id="otpStep" style="display:none; margin-top:14px;">
           <div class="form-group" style="text-align:left;">
             <label>Enter the 6-digit code sent to your phone</label>
             <input type="text" id="otpInput" class="otp-input" maxlength="6" placeholder="000000">
           </div>
           <button class="btn btn-primary btn-block" id="verifyOtpBtn">Verify & Login</button>
-          <button class="btn btn-outline btn-block" style="margin-top:10px;" id="changeNumberBtn">Use a different number</button>
+          <button class="btn btn-outline btn-block" style="margin-top:12px;" id="changeNumberBtn">Use a different number</button>
         </div>
 
-        <p id="loginError" style="color:#c0392b; font-size:13px; margin-top:14px;"></p>
+        <p id="loginError" style="color:#c0392b; font-size:13px; margin-top:16px;"></p>
       </div>
     </div>
 
@@ -62,21 +62,21 @@
 
       <div class="account-panel active" id="panel-profile">
         <div class="admin-card">
-          <h3 style="color:var(--pink-dark); margin-bottom:16px;">Your Details</h3>
+          <h3 style="color:var(--text-dark); margin-bottom:20px; font-size:19px;">Your Details</h3>
           <div class="form-group"><label>Mobile Number</label><input type="text" id="profilePhone" disabled></div>
           <div class="form-group"><label>Your Name</label><input type="text" id="profileName" placeholder="Add your name"></div>
-          <button class="btn btn-primary" onclick="saveProfileName()">Save</button>
+          <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfileName()">Save</button>
           <button class="btn btn-outline" style="margin-left:10px;" onclick="doLogout()">Log Out</button>
         </div>
       </div>
 
       <div class="account-panel" id="panel-wishlist">
-        <p id="wishlistEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:30px;">Your wishlist is empty. Browse the shop and tap the heart icon on any product to save it here.</p>
+        <p id="wishlistEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:40px;">Your wishlist is empty. Browse the shop and tap the heart icon on any product to save it here.</p>
         <div class="wishlist-grid" id="wishlistGrid"></div>
       </div>
 
       <div class="account-panel" id="panel-orders">
-        <p id="ordersEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:30px;">You haven't placed any orders yet.</p>
+        <p id="ordersEmpty" style="display:none; color:var(--text-muted); text-align:center; padding:40px;">You haven't placed any orders yet.</p>
         <div id="ordersList"></div>
       </div>
     </div>
@@ -104,6 +104,11 @@
   subscribeCategoriesUpdates(function () {
     if (document.getElementById("accountSection").style.display !== "none") loadWishlistTab();
   });
+
+  // If the user just logged in and hasn't set a name yet, we land here
+  // normally. If they already HAVE a name saved, jump straight to the
+  // homepage with their "Hi, Name" greeting already showing up top.
+  let _justLoggedIn = false;
 
   if (!firebaseReady()) {
     document.getElementById("notConfiguredNotice").style.display = "block";
@@ -146,6 +151,7 @@
       const errorEl = document.getElementById("loginError");
       errorEl.textContent = "";
       if (!code || code.length < 6) { errorEl.textContent = "Please enter the 6-digit code."; return; }
+      _justLoggedIn = true;
       verifyOtp(code).catch(err => {
         console.error(err);
         errorEl.textContent = "That code didn't match. Please try again.";
@@ -169,16 +175,35 @@
     document.getElementById("profilePhone").value = user.phoneNumber || "";
     const profile = await getUserProfile();
     document.getElementById("profileName").value = (profile && profile.name) || "";
+
+    // If the customer just verified their OTP and ALREADY has a name on
+    // file (returning customer), skip straight to the shop with their
+    // "Hi, Name" greeting visible in the header.
+    if (_justLoggedIn && profile && profile.name && profile.name.trim()) {
+      window.location.href = "shop.html";
+    }
   }
 
   async function saveProfileName() {
     const name = document.getElementById("profileName").value.trim();
-    await updateUserName(name);
-    alert("Saved!");
+    if (!name) { alert("Please enter your name."); return; }
+    const btn = document.getElementById("saveProfileBtn");
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+    try {
+      await updateUserName(name);
+      // Head to the homepage — the header will now greet the customer
+      // by name ("Hi, <Name>") on every page.
+      window.location.href = "index.html";
+    } catch (e) {
+      alert("Couldn't save your name right now. Please try again.");
+      btn.disabled = false;
+      btn.textContent = "Save";
+    }
   }
 
   function doLogout() {
-    logout();
+    logout().then(() => { window.location.href = "index.html"; });
   }
 
   async function loadWishlistTab() {
@@ -226,7 +251,7 @@
           ${renderStatusStepper(o.status || "Placed")}
           ${renderTrackingBox(o)}
           ${itemsHtml}
-          <div class="row" style="margin-top:10px; font-weight:700; color:var(--pink-dark);">
+          <div class="row" style="margin-top:12px; font-weight:600; color:var(--text-dark);">
             <span>Total</span><span>${formatPrice(o.total || 0)}</span>
           </div>
         </div>`;

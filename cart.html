@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Cart | Pink World</title>
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -18,17 +18,17 @@
 <div id="header-placeholder"></div>
 <div class="page-banner"><h1>My Cart</h1></div>
 
-<div class="container">
-  <div id="cartWrapper" style="display:grid; grid-template-columns: 1fr 340px; gap:30px; align-items:start;">
+<div class="container" style="padding-top:50px;">
+  <div id="cartWrapper" style="display:grid; grid-template-columns: 1fr 360px; gap:44px; align-items:start;">
     <div id="cartTableWrap"></div>
     <div class="cart-summary" id="cartSummary"></div>
   </div>
 </div>
 
-<div class="container" id="checkoutSection" style="display:none; margin-top:30px; max-width:600px;">
+<div class="container" id="checkoutSection" style="display:none; margin-top:44px; max-width:600px;">
   <div class="cart-summary">
-    <h3 style="color:var(--pink-dark); margin-bottom:16px;">Your Details</h3>
-    <p id="loggedInNotice" style="display:none; font-size:12.5px; color:var(--success); margin-bottom:14px;">✓ Logged in — this order will be saved to your account automatically.</p>
+    <h3 style="color:var(--text-dark); margin-bottom:22px; font-size:20px;">Your Details</h3>
+    <p id="loggedInNotice" style="display:none; font-size:12.5px; color:var(--success); margin-bottom:18px;">✓ Logged in — this order will be saved to your account automatically.</p>
     <div class="form-group"><label>Full Name</label><input type="text" id="custName" placeholder="Your name"></div>
     <div class="form-group"><label>Phone Number</label><input type="text" id="custPhone" placeholder="10-digit mobile number"></div>
     <div class="form-group"><label>Delivery Address (optional if picking up in-store)</label><textarea id="custAddress" rows="3" placeholder="House name, Place, Pin code"></textarea></div>
@@ -40,9 +40,9 @@
         <option>Home Delivery</option>
       </select>
     </div>
-    <button class="btn btn-razorpay btn-block" style="margin-bottom:10px;" onclick="handlePayOnline()">Pay Online Now (UPI / Card / Netbanking)</button>
+    <button class="btn btn-razorpay btn-block" style="margin-bottom:12px;" onclick="handlePayOnline()">Pay Online Now (UPI / Card / Netbanking)</button>
     <button class="btn btn-whatsapp btn-block" onclick="submitCheckout()">Send Order via WhatsApp</button>
-    <p style="font-size:12px; color:var(--text-muted); margin-top:10px; text-align:center;">You can pay online for instant confirmation, or send your order via WhatsApp and pay on delivery/pickup.</p>
+    <p style="font-size:12px; color:var(--text-muted); margin-top:14px; text-align:center;">You can pay online for instant confirmation, or send your order via WhatsApp and pay on delivery/pickup.</p>
   </div>
 </div>
 
@@ -79,8 +79,8 @@
       document.getElementById("cartTableWrap").innerHTML = `
         <div class="empty-cart">
           <div class="icon">🛍️</div>
-          <h3>Your cart is empty</h3>
-          <p style="color:var(--text-muted); margin:10px 0 20px;">Looks like you haven't added anything yet.</p>
+          <h3 style="font-size:22px; margin-bottom:10px;">Your cart is empty</h3>
+          <p style="color:var(--text-muted); margin:10px 0 26px; font-size:14px;">Looks like you haven't added anything yet.</p>
           <a href="shop.html" class="btn btn-primary">Start Shopping</a>
         </div>`;
       document.getElementById("cartSummary").innerHTML = "";
@@ -98,7 +98,7 @@
           <td>
             <div class="cart-item-info">
               <img src="${product.image}" alt="${product.name}">
-              <div><strong>${product.name}</strong><br><span style="font-size:12px; color:var(--text-muted);">Size: ${item.size}${stock <= 3 ? ` · <span style="color:#b4650f;">only ${stock} left</span>` : ""}</span></div>
+              <div><strong style="font-size:13.5px;">${product.name}</strong><br><span style="font-size:12px; color:var(--text-muted);">Size: ${item.size}${stock <= 3 ? ` · <span style="color:#b4650f;">only ${stock} left</span>` : ""}</span></div>
             </div>
           </td>
           <td>${formatPrice(product.price)}</td>
@@ -123,11 +123,11 @@
     const total = cartTotalPrice();
     const shipping = cartShippingCost();
     document.getElementById("cartSummary").innerHTML = `
-      <h3 style="color:var(--pink-dark); margin-bottom:16px;">Order Summary</h3>
+      <h3 style="color:var(--text-dark); margin-bottom:22px; font-size:20px;">Order Summary</h3>
       <div class="row"><span>Subtotal</span><span>${formatPrice(total)}</span></div>
       <div class="row"><span>Shipping</span><span>${shipping === 0 ? "FREE" : formatPrice(shipping)}</span></div>
       <div class="row total-row"><span>Total</span><span>${formatPrice(total + shipping)}</span></div>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="showCheckout()">Proceed to Checkout</button>
+      <button class="btn btn-primary btn-block" style="margin-top:20px;" onclick="showCheckout()">Proceed to Checkout</button>
     `;
     document.getElementById("checkoutSection").style.display = "none";
   }
