@@ -7,7 +7,7 @@ const STORE_CONFIG = {
   tagline: "Fashion & Everyday Essentials for the Whole Family",
   description: "Trendy sarees, kurtis, western wear, men's collections & intimate wear — now online from our Erattayar and Nedumkandam stores.",
 
-  whatsapp: "917306775643",
+  whatsapp: "+919074880454",
 
   email: "info@pinkworldstore.in",
 
@@ -20,7 +20,7 @@ const STORE_CONFIG = {
   // This exact number (with +country code, no spaces) is the ONLY
   // login that can make changes on admin.html — both the Firestore
   // security rules AND the admin page itself check against this.
-  adminPhone: "+910000000000",
+  adminPhone: "+919747778534",
 
   branches: [
     {
