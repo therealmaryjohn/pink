@@ -117,6 +117,13 @@ function initLayout(activePage) {
         return;
       }
       if (link) { link.title = "My Account"; link.style.color = "var(--rose-dark)"; }
+
+      // Pull this customer's saved cart (merging in anything they added
+      // as a guest on this browser) so it's always there when they log in.
+      if (typeof pullCartFromAccountAndMerge === "function") {
+        pullCartFromAccountAndMerge(user);
+      }
+
       if (greetingEl && typeof getUserProfile === "function") {
         try {
           const profile = await getUserProfile();
@@ -160,13 +167,13 @@ function productCardHtml(p) {
   </div>`;
 }
 
-function quickAdd(id) {
+async function quickAdd(id) {
   const product = PRODUCTS.find(p => p.id === id);
   if (!product) return;
-  if (isProductSoldOut(product)) { alert("Sorry, this product is currently sold out."); return; }
+  if (isProductSoldOut(product)) { await showNotice("Sorry, this product is currently sold out."); return; }
   const size = getFirstAvailableSize(product);
-  const added = addToCart(id, size, 1);
-  if (added) alert(`${product.name} added to cart!`);
+  const added = await addToCart(id, size, 1);
+  if (added) await showNotice(`${product.name} added to cart!`);
 }
 
 function categoryCardHtml(c) {

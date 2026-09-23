@@ -1,5 +1,10 @@
 /* =====================================================================
    PINK WORLD — PRODUCT CATALOG (default / offline catalog)
+   -----------------------------------------------------------------
+   This file is the STARTING catalog and also the safe fallback the
+   site uses if Firestore is ever unreachable. Once you've migrated
+   (via admin.html), the live Firestore data takes over automatically
+   and this file is no longer what customers see day-to-day.
    ===================================================================== */
 
 const PRODUCTS = [

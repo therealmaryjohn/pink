@@ -49,6 +49,7 @@
 <div id="footer-placeholder"></div>
 
 <script src="js/config.js"></script>
+<script src="js/ui-notify.js"></script>
 <script src="js/products.js"></script>
 <script src="js/inventory.js"></script>
 <script src="js/firebase-config.js"></script>
@@ -132,7 +133,7 @@
     document.getElementById("checkoutSection").style.display = "none";
   }
 
-  function changeCartQty(index, qty) { updateCartQty(index, qty); renderCartPage(); }
+  async function changeCartQty(index, qty) { await updateCartQty(index, qty); renderCartPage(); }
   function removeCartItem(index) { removeFromCart(index); renderCartPage(); }
   function showCheckout() {
     document.getElementById("checkoutSection").style.display = "block";
@@ -146,14 +147,14 @@
       branch: document.getElementById("custBranch").value
     };
   }
-  function submitCheckout() {
+  async function submitCheckout() {
     const c = getCustomerFields();
-    if (!c.name || !c.phone) { alert("Please enter your name and phone number."); return; }
+    if (!c.name || !c.phone) { await showNotice("Please enter your name and phone number."); return; }
     checkoutViaWhatsApp(c.name, c.phone, c.address, c.branch);
   }
-  function handlePayOnline() {
+  async function handlePayOnline() {
     const c = getCustomerFields();
-    if (!c.name || !c.phone) { alert("Please enter your name and phone number before paying."); return; }
+    if (!c.name || !c.phone) { await showNotice("Please enter your name and phone number before paying."); return; }
     payOnlineWithRazorpay(c.name, c.phone, c.address, c.branch);
   }
 
