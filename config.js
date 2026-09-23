@@ -5,7 +5,7 @@ const STORE_CONFIG = {
   tagline: "Fashion & Everyday Essentials for the Whole Family",
   description: "Trendy sarees, kurtis, western wear, men's collections & intimate wear — now online from our Erattayar and Nedumkandam stores.",
 
-  whatsapp: "917306775643",
+  whatsapp: "+919074880454",
   email: "info@pinkworldstore.in",
 
   freeShippingThreshold: 1499,
