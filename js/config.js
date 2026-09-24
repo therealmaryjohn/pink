@@ -15,7 +15,7 @@ const STORE_CONFIG = {
   currency: "₹",
 
   razorpayEnabled: true,
-  razorpayKeyId: "rzp_test_TeezvvjQSJNKGD",
+  razorpayKeyId: "rzp_live_TfR90dqRcAtrA2",
 
   // This exact number (with +country code, no spaces) is the ONLY
   // login that can make changes on admin.html — both the Firestore
