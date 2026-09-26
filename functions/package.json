@@ -2,7 +2,7 @@
   "name": "pinkworld-functions",
   "description": "Secure Razorpay order creation and payment verification for Pink World",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {
