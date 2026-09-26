@@ -1,0 +1,13 @@
+{
+  "name": "pinkworld-functions",
+  "description": "Secure Razorpay order creation and payment verification for Pink World",
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^5.0.0",
+    "firebase-admin": "^12.0.0"
+  },
+  "private": true
+}
