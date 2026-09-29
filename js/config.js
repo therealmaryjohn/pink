@@ -7,7 +7,7 @@ const STORE_CONFIG = {
   tagline: "Fashion & Everyday Essentials for the Whole Family",
   description: "Trendy sarees, kurtis, western wear, men's collections & intimate wear — now online from our Erattayar and Nedumkandam stores.",
 
-  whatsapp: "+919074880454",
+  whatsapp: "917306775643",
 
   email: "info@pinkworldstore.in",
 
@@ -15,12 +15,13 @@ const STORE_CONFIG = {
   currency: "₹",
 
   razorpayEnabled: true,
-  razorpayKeyId: "rzp_live_TfR90dqRcAtrA2",
+  razorpayKeyId: "rzp_live_TfR9OdqRcAtrA2",
 
   // This exact number (with +country code, no spaces) is the ONLY
   // login that can make changes on admin.html — both the Firestore
-  // security rules AND the admin page itself check against this.
-  adminPhone: "+919747778534",
+  // security rules AND the Storage security rules must match this
+  // exact number too.
+  adminPhone: "+919562171571",
 
   branches: [
     {
