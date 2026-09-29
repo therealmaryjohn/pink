@@ -1,12 +1,13 @@
 /* =====================================================================
    PINK WORLD — STORE MANAGER (admin.html logic)
    -----------------------------------------------------------------
-   SECURITY: The entire page (every tab) is hidden behind
-   updateAdminAccessGate() below, which only reveals anything once
-   the visitor has logged in with the exact admin mobile number set
-   in Store Settings. This is enforced again server-side by your
-   Firestore/Storage security rules, so even a technically savvy
-   visitor cannot push changes without that specific phone's OTP.
+   FIX APPLIED: Product photo uploads to Firebase Storage now have a
+   30-second safety timeout wrapped around them. Previously, if the
+   upload stalled (network hiccup, Storage rules issue, etc.), the
+   "Uploading photo..." button would stay disabled forever with no
+   error shown. Now, if it takes longer than 30 seconds, it
+   automatically fails with a clear, actionable error message instead
+   of hanging indefinitely.
    ===================================================================== */
 
 const SEED_PRODUCTS = JSON.parse(JSON.stringify(PRODUCTS));
@@ -38,13 +39,10 @@ function updateAdminAccessGate() {
   const content = document.getElementById("adminGatedContent");
 
   if (!firebaseReady()) {
-    // No login mechanism exists at all -- fall back to showing the page,
-    // since there is no way to authenticate anyone without Firebase.
     gate.style.display = "none";
     content.style.display = "block";
     return;
   }
-
   if (!_currentAuthUser) {
     gate.style.display = "block";
     content.style.display = "none";
@@ -56,7 +54,6 @@ function updateAdminAccessGate() {
       </div>`;
     return;
   }
-
   if (!isAdminUser()) {
     gate.style.display = "block";
     content.style.display = "none";
@@ -67,7 +64,6 @@ function updateAdminAccessGate() {
       </div>`;
     return;
   }
-
   gate.style.display = "none";
   content.style.display = "block";
 }
@@ -125,6 +121,41 @@ function stockPillHtml(totalStock) {
   if (totalStock <= 0) return `<span class="stock-pill out-stock">Sold Out</span>`;
   if (totalStock <= 5) return `<span class="stock-pill low-stock">${totalStock} left</span>`;
   return `<span class="stock-pill in-stock">${totalStock} in stock</span>`;
+}
+
+/* ---------------------------------------------------------------------
+   NEW: UPLOAD-WITH-TIMEOUT HELPER (fixes the "stuck forever" bug)
+   -----------------------------------------------------------------
+   Wraps a Firebase Storage upload in a race against a timer. If the
+   upload doesn't finish within `timeoutMs`, this throws a clear error
+   instead of hanging silently forever.
+   --------------------------------------------------------------------- */
+function uploadFileWithTimeout(storageRef, blob, timeoutMs) {
+  timeoutMs = timeoutMs || 30000; // 30 seconds
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Upload timed out after 30 seconds. This is usually a temporary network issue, or (less commonly) a Firebase Storage security-rules problem. Please check your internet connection and try again."));
+    }, timeoutMs);
+
+    const uploadTask = storageRef.put(blob);
+    uploadTask.then(
+      (snapshot) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(snapshot);
+      },
+      (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
 }
 
 /* ---------------------------- SIZE & STOCK ROW EDITOR ---------------------------- */
@@ -198,6 +229,7 @@ async function deleteProduct(id) {
     try {
       await fbDb.collection("products").doc(id).delete();
       delete pendingImages[id];
+      await showNotice("Product deleted.");
     } catch (e) {
       await showNotice("Couldn't delete this product online right now: " + e.message);
     }
@@ -298,7 +330,10 @@ async function saveProduct() {
       if (pending && pending.blob) {
         saveBtn.textContent = "Uploading photo...";
         const storageRef = firebase.storage().ref(`products/${id}/${pending.filename}`);
-        await storageRef.put(pending.blob);
+        // FIX: this call is now wrapped with a 30-second timeout, so it
+        // can never leave the button stuck forever — see
+        // uploadFileWithTimeout() above.
+        await uploadFileWithTimeout(storageRef, pending.blob, 30000);
         imagePath = await storageRef.getDownloadURL();
       } else {
         const existing = PRODUCTS.find(p => p.id === id);
@@ -314,7 +349,10 @@ async function saveProduct() {
       closeProductForm();
       await showNotice("Product saved — your website updates within a few seconds.");
     } catch (e) {
-      await showNotice("Couldn't save this product online right now. Please check your connection and try again.\n\n" + e.message);
+      // FIX: any failure (including our new timeout) now shows a clear
+      // message AND always restores the button, instead of leaving it
+      // disabled indefinitely.
+      await showNotice("Couldn't save this product online.\n\n" + e.message + "\n\nPlease check your internet connection and try again. If this keeps happening, double-check your Firebase Storage security rules include write access for the admin phone number.");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -427,7 +465,8 @@ async function saveCategory() {
       if (pending && pending.blob) {
         saveBtn.textContent = "Uploading photo...";
         const storageRef = firebase.storage().ref(`categories/${id}/${pending.filename}`);
-        await storageRef.put(pending.blob);
+        // FIX: same 30-second timeout safety net applied here too.
+        await uploadFileWithTimeout(storageRef, pending.blob, 30000);
         imagePath = await storageRef.getDownloadURL();
       } else {
         const existing = CATEGORIES.find(c => c.id === id);
@@ -442,7 +481,7 @@ async function saveCategory() {
       closeCategoryForm();
       await showNotice("Category saved — your website updates within a few seconds.");
     } catch (e) {
-      await showNotice("Couldn't save this category online right now.\n\n" + e.message);
+      await showNotice("Couldn't save this category online.\n\n" + e.message + "\n\nPlease check your internet connection and try again. If this keeps happening, double-check your Firebase Storage security rules include write access for the admin phone number.");
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
