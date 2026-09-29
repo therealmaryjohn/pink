@@ -1,15 +1,24 @@
 /* =====================================================================
    PINK WORLD — SHOPPING CART & CHECKOUT LOGIC
    -----------------------------------------------------------------
-   The cart is always cached in this browser's localStorage (so it
-   works instantly, even offline). ADDITIONALLY, whenever a customer
-   is logged in, every change is also saved to their account in
-   Firestore — so the same cart follows them if they log in again
-   later, even on a different phone or computer.
+   PAYMENT SAFETY: payOnlineWithRazorpay() protects against the
+   "shows success even when payment failed" bug in two ways:
+
+   1. DOUBLE-INVOCATION GUARD — a flag (_razorpayInProgress) blocks a
+      second Razorpay popup from opening while one is already active.
+
+   2. SERVER-SIDE VERIFICATION (via the deployed Cloud Functions) —
+      instead of trusting the browser's own report of "it worked", the
+      site asks secure Firebase Cloud Functions to independently
+      confirm with Razorpay's servers (using cryptographic signature
+      verification with your Key Secret) that the payment truly went
+      through. Only then does it show "Payment Successful", clear the
+      cart, and save the order.
    ===================================================================== */
 
 const CART_KEY = "pinkworld_cart";
 const CART_SYNCED_FLAG_PREFIX = "pinkworld_cart_synced_";
+let _razorpayInProgress = false;
 
 function getCart() {
   try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
@@ -22,9 +31,6 @@ function saveCart(cart) {
   pushCartToAccountIfLoggedIn(cart);
 }
 
-/* Adds an item to the cart, clamped to the size's available stock.
-   Returns true if anything was actually added, false if the size was
-   already sold out or the cart already holds the maximum available. */
 async function addToCart(productId, size, qty) {
   qty = qty || 1;
   const product = PRODUCTS.find(p => p.id === productId);
@@ -105,11 +111,6 @@ function updateCartBadge() {
   });
 }
 
-/* ---------------------------------------------------------------------
-   ACCOUNT-SYNCED CART
-   Whenever a customer is logged in, their cart is mirrored to their
-   Firestore user document (same doc used for their name/profile).
-   --------------------------------------------------------------------- */
 function pushCartToAccountIfLoggedIn(cart) {
   const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
   if (!user || !fbDb) return;
@@ -117,11 +118,6 @@ function pushCartToAccountIfLoggedIn(cart) {
     .catch(e => console.warn("Could not save cart to account:", e));
 }
 
-/* Called once right after login (and again on every page load while
-   already logged in). Pulls the customer's saved cart from Firestore,
-   merges in anything they added as a guest on THIS browser before
-   logging in, clamps quantities to current stock, and saves the
-   result back to both localStorage and Firestore. */
 async function pullCartFromAccountAndMerge(user) {
   if (!user || !fbDb) return;
   const flagKey = CART_SYNCED_FLAG_PREFIX + user.uid;
@@ -145,7 +141,6 @@ async function pullCartFromAccountAndMerge(user) {
       merged = serverCart;
     }
 
-    // Clamp against current stock, dropping anything that's now sold out.
     merged = merged
       .map(item => {
         const product = PRODUCTS.find(p => p.id === item.id);
@@ -234,6 +229,48 @@ async function checkoutViaWhatsApp(customerName, customerPhone, customerAddress,
   window.open(url, "_blank");
 }
 
+/* ---------------------------------------------------------------------
+   SERVER-SIDE VERIFICATION HELPERS
+   --------------------------------------------------------------------- */
+function paymentVerificationConfigured() {
+  return typeof PAYMENT_VERIFICATION_ENABLED !== "undefined" && PAYMENT_VERIFICATION_ENABLED &&
+    typeof CREATE_ORDER_URL !== "undefined" && CREATE_ORDER_URL &&
+    typeof VERIFY_PAYMENT_URL !== "undefined" && VERIFY_PAYMENT_URL;
+}
+
+async function createRazorpayOrderOnServer(amountPaise) {
+  const res = await fetch(CREATE_ORDER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amountPaise, currency: "INR" })
+  });
+  if (!res.ok) throw new Error("Could not create a secure order on the server.");
+  return res.json();
+}
+
+async function verifyRazorpayPaymentOnServer(response) {
+  try {
+    const res = await fetch(VERIFY_PAYMENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature
+      })
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data.verified;
+  } catch (e) {
+    console.warn("Payment verification request failed:", e);
+    return false;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   MAIN CHECKOUT FUNCTION
+   --------------------------------------------------------------------- */
 async function payOnlineWithRazorpay(customerName, customerPhone, customerAddress, branch) {
   const cart = getCart();
   if (cart.length === 0) { await showNotice("Your cart is empty. Please add some products first."); return; }
@@ -246,10 +283,29 @@ async function payOnlineWithRazorpay(customerName, customerPhone, customerAddres
     await showNotice("Payment system could not load. Please check your internet connection and try again, or use 'Send Order via WhatsApp'.");
     return;
   }
+  if (_razorpayInProgress) {
+    await showNotice("A payment is already in progress. Please wait for it to finish, or refresh the page and try again.");
+    return;
+  }
 
   const total = cartTotalPrice();
   const shipping = cartShippingCost();
   const amountPaise = Math.round((total + shipping) * 100);
+  const verificationOn = paymentVerificationConfigured();
+
+  _razorpayInProgress = true;
+
+  let orderIdFromServer = null;
+  if (verificationOn) {
+    try {
+      const orderData = await createRazorpayOrderOnServer(amountPaise);
+      orderIdFromServer = orderData.id;
+    } catch (e) {
+      _razorpayInProgress = false;
+      await showNotice("Couldn't start a secure payment session right now. Please check your connection and try again, or use 'Send Order via WhatsApp'.");
+      return;
+    }
+  }
 
   const options = {
     key: STORE_CONFIG.razorpayKeyId,
@@ -261,15 +317,37 @@ async function payOnlineWithRazorpay(customerName, customerPhone, customerAddres
     notes: { address: customerAddress || "", branch: branch || "" },
     theme: { color: "#96543f" },
     handler: async function (response) {
-      clearCart();
-      await showNotice("Payment successful!\n\nPayment ID: " + response.razorpay_payment_id + "\n\nWe'll now open WhatsApp so you can send your order details for confirmation.");
-      checkoutViaWhatsApp(customerName, customerPhone, customerAddress, branch, response.razorpay_payment_id);
+      try {
+        if (verificationOn) {
+          const verified = await verifyRazorpayPaymentOnServer(response);
+          if (!verified) {
+            await showNotice(
+              "We couldn't independently verify this payment, so we have NOT marked your order as paid.\n\n" +
+              "If money was deducted from your account, please contact us on WhatsApp right away with this Payment ID so we can confirm it manually:\n\n" +
+              response.razorpay_payment_id
+            );
+            return;
+          }
+        }
+        clearCart();
+        await showNotice("Payment successful!\n\nPayment ID: " + response.razorpay_payment_id + "\n\nWe'll now open WhatsApp so you can send your order details for confirmation.");
+        checkoutViaWhatsApp(customerName, customerPhone, customerAddress, branch, response.razorpay_payment_id);
+      } finally {
+        _razorpayInProgress = false;
+      }
     },
-    modal: { ondismiss: function () { console.log("Payment popup closed by user."); } }
+    modal: {
+      ondismiss: function () {
+        _razorpayInProgress = false;
+        console.log("Payment popup closed by user.");
+      }
+    }
   };
+  if (orderIdFromServer) options.order_id = orderIdFromServer;
 
   const rzp = new Razorpay(options);
   rzp.on("payment.failed", async function (response) {
+    _razorpayInProgress = false;
     await showNotice("Payment failed: " + (response.error && response.error.description ? response.error.description : "Please try again or use WhatsApp checkout."));
   });
   rzp.open();
